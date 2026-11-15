@@ -330,19 +330,86 @@ test('Google and GitHub OAuth report missing configuration or redirect with prot
 
 test('signed Stripe webhook updates billing and rejects an invalid signature', async (t) => {
   const webhookSecret = 'whsec_mindlarp_test';
-  const { origin, readData } = await startApp(t, { env: { STRIPE_SECRET_KEY: 'sk_test_mindlarp', STRIPE_PRICE_ID: 'price_test', STRIPE_WEBHOOK_SECRET: webhookSecret } });
+  const { origin, readData } = await startApp(t, {
+    env: {
+      STRIPE_SECRET_KEY: 'sk_test_mindlarp',
+      STRIPE_PRICE_ID: 'price_test',
+      STRIPE_WEBHOOK_SECRET: webhookSecret,
+    },
+  });
+
   await setupOwner(origin);
   const userId = (await readData()).users[0].id;
-  const payload = JSON.stringify({ id: 'evt_test', type: 'checkout.session.completed', data: { object: { id: 'cs_test', customer: 'cus_test', subscription: 'sub_test', client_reference_id: userId } } });
-  const timestamp = Math.floor(Date.now() / 1000);
-  const signature = createHmac('sha256', webhookSecret).update(`${timestamp}.${payload}`).digest('hex');
-  let response = await fetch(`${origin}/webhooks/stripe`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Stripe-Signature': `t=${timestamp},v1=${signature}` }, body: payload });
+
+  async function sendEvent(type, object) {
+    const payload = JSON.stringify({
+      id: evt_${type.replaceAll('.', '_')},
+      type,
+      data: { object },
+    });
+    const timestamp = Math.floor(Date.now() / 1000);
+    const signature = createHmac('sha256', webhookSecret)
+      .update(${timestamp}.${payload})
+      .digest('hex');
+
+    return fetch(${origin}/webhooks/stripe, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Stripe-Signature': t=${timestamp},v1=${signature},
+      },
+      body: payload,
+    });
+  }
+
+  let response = await sendEvent('checkout.session.completed', {
+    id: 'cs_test',
+    customer: 'cus_test',
+    subscription: 'sub_test',
+    client_reference_id: userId,
+  });
+
   assert.equal(response.status, 200);
-  const billing = (await readData()).users[0].billing;
+
+  let billing = (await readData()).users[0].billing;
   assert.equal(billing.stripeCustomerId, 'cus_test');
   assert.equal(billing.subscriptionId, 'sub_test');
+  assert.equal(billing.status, 'pending');
+
+  response = await sendEvent('customer.subscription.updated', {
+    id: 'sub_test',
+    customer: 'cus_test',
+    status: 'active',
+    current_period_end: Math.floor(Date.now() / 1000) + 86400,
+    items: {
+      data: [{ price: { id: 'price_test' } }],
+    },
+  });
+
+  assert.equal(response.status, 200);
+
+  billing = (await readData()).users[0].billing;
+  assert.equal(billing.subscriptionId, 'sub_test');
   assert.equal(billing.status, 'active');
-  response = await fetch(`${origin}/webhooks/stripe`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Stripe-Signature': `t=${timestamp},v1=invalid` }, body: payload });
+  assert.equal(billing.priceId, 'price_test');
+  assert.ok(billing.currentPeriodEnd);
+
+  const invalidPayload = JSON.stringify({
+    id: 'evt_invalid',
+    type: 'checkout.session.completed',
+    data: { object: { client_reference_id: userId } },
+  });
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  response = await fetch(${origin}/webhooks/stripe, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Stripe-Signature': t=${timestamp},v1=invalid,
+    },
+    body: invalidPayload,
+  });
+
   assert.equal(response.status, 400);
 });
 
