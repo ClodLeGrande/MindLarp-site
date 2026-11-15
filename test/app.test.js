@@ -343,20 +343,20 @@ test('signed Stripe webhook updates billing and rejects an invalid signature', a
 
   async function sendEvent(type, object) {
     const payload = JSON.stringify({
-      id: evt_${type.replaceAll('.', '_')},
+      id: `evt_${type.replaceAll('.', '_')}`,
       type,
       data: { object },
     });
     const timestamp = Math.floor(Date.now() / 1000);
     const signature = createHmac('sha256', webhookSecret)
-      .update(${timestamp}.${payload})
+      .update(`${timestamp}.${payload}`)
       .digest('hex');
 
-    return fetch(${origin}/webhooks/stripe, {
+    return fetch(`${origin}/webhooks/stripe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Stripe-Signature': t=${timestamp},v1=${signature},
+        'Stripe-Signature': `t=${timestamp},v1=${signature}`,
       },
       body: payload,
     });
@@ -401,11 +401,11 @@ test('signed Stripe webhook updates billing and rejects an invalid signature', a
   });
   const timestamp = Math.floor(Date.now() / 1000);
 
-  response = await fetch(${origin}/webhooks/stripe, {
+  response = await fetch(`${origin}/webhooks/stripe`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Stripe-Signature': t=${timestamp},v1=invalid,
+      'Stripe-Signature': `t=${timestamp},v1=invalid`,
     },
     body: invalidPayload,
   });
