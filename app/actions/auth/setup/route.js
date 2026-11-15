@@ -7,6 +7,10 @@ import {
 } from '@/src/server/auth.js';
 import { consumeRateLimit } from '@/src/server/rate-limit.js';
 import { formRedirect, readForm } from '@/src/server/responses.js';
+import { checkSameOrigin } from '@/src/server/request-security.js';
+
+const originError = checkSameOrigin(request);
+if (originError) return originError;
 
 export async function POST(request) {
   const rate = consumeRateLimit(request, 'setup', {

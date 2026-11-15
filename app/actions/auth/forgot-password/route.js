@@ -1,3 +1,4 @@
+import { checkSameOrigin } from '@/src/server/request-security.js';
 import { randomUUID } from 'node:crypto';
 import { createMailer } from '@/src/mailer.js';
 import { hashToken, normalizeEmail, randomToken, validEmail } from '@/src/server/auth.js';
@@ -5,6 +6,9 @@ import { publicUrl, smtpConfig } from '@/src/server/config.js';
 import { consumeRateLimit } from '@/src/server/rate-limit.js';
 import { formRedirect, readForm } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
+
+const originError = checkSameOrigin(request);
+if (originError) return originError;
 
 export async function POST(request) {
   const rate = consumeRateLimit(request, 'recovery', { limit: 5, windowMs: 15 * 60_000 });

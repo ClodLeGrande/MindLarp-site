@@ -13,6 +13,10 @@ import {
   readForm,
 } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
+import { checkSameOrigin } from '@/src/server/request-security.js';
+
+const originError = checkSameOrigin(request);
+if (originError) return originError;
 
 export async function POST(request) {
   const rate = consumeRateLimit(request, 'login', {

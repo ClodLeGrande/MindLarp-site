@@ -79,7 +79,7 @@ async function startApp(t, options = {}) {
   throw new Error(`Next.js did not become ready:\n${output}`);
 }
 
-async function post(origin, path, body, cookie = '') {
+async function post(origin, path, body, cookie = '', requestOrigin = origin) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(body)) {
     for (const item of Array.isArray(value) ? value : [value]) params.append(key, item);
@@ -87,7 +87,11 @@ async function post(origin, path, body, cookie = '') {
   return fetch(`${origin}${path}`, {
     method: 'POST',
     redirect: 'manual',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...(cookie ? { Cookie: cookie } : {}) },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Origin: requestOrigin,
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
     body: params,
   });
 }
@@ -182,6 +186,58 @@ test('owner setup validates input and establishes a persistent session', async (
   assert.match(await response.text(), /Good to see you, Ada/);
   assert.equal((await readData()).users.length, 1);
   assert.equal((await fetch(`${origin}/setup`, { redirect: 'manual' })).headers.get('location'), '/login');
+});
+
+test('auth routes reject cross-origin requests without changing account data', async (t) => {
+  const { origin, readData } = await startApp(t);
+  const cookie = await setupOwner(origin);
+
+  const requests = [
+    ['/actions/auth/login', {
+      email: 'ada@example.com',
+      password,
+    }],
+    ['/actions/auth/register', {
+      displayName: 'Grace Hopper',
+      email: 'grace@example.com',
+      password: 'another-good-password',
+      confirmPassword: 'another-good-password',
+    }],
+    ['/actions/auth/forgot-password', {
+      email: 'ada@example.com',
+    }],
+  ];
+
+  for (const [path, body] of requests) {
+    const response = await post(
+      origin,
+      path,
+      body,
+      cookie,
+      'https://evil.example'
+    );
+
+    assert.equal(response.status, 403, path);
+  }
+
+  assert.equal((await readData()).users.length, 1);
+
+  const emptyApp = await startApp(t);
+  const setupResponse = await post(
+    emptyApp.origin,
+    '/actions/auth/setup',
+    {
+      displayName: 'Attacker',
+      email: 'attacker@example.com',
+      password,
+      confirmPassword: password,
+    },
+    '',
+    'https://evil.example'
+  );
+
+  assert.equal(setupResponse.status, 403);
+  assert.equal((await emptyApp.readData()).users.length, 0);
 });
 
 test('API keys are scoped, hashed, validated, protected by CSRF, and revocable', async (t) => {
