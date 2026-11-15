@@ -81,9 +81,13 @@ async function startApp(t, options = {}) {
 
 async function post(origin, path, body, cookie = '', requestOrigin = origin) {
   const params = new URLSearchParams();
+
   for (const [key, value] of Object.entries(body)) {
-    for (const item of Array.isArray(value) ? value : [value]) params.append(key, item);
+    for (const item of Array.isArray(value) ? value : [value]) {
+      params.append(key, item);
+    }
   }
+
   return fetch(`${origin}${path}`, {
     method: 'POST',
     redirect: 'manual',
@@ -158,7 +162,7 @@ test('public pages, assets, SEO, trust strip, and health work on Next.js', async
   assert.match(html, /application\/ld\+json/);
   assert.match(response.headers.get('content-security-policy'), /nonce-/);
   assert.match(response.headers.get('content-security-policy'), /strict-dynamic/);
-  assert.match(html, /© 2026 GonidonCloud/);
+  assert.match(html, /? 2026 GonidonCloud/);
   for (const name of ['GitHub', 'YouTube', 'Hugging Face', 'Telegram', 'Discord']) assert.match(html, new RegExp(`aria-label="MindLarp on ${name}"`));
   assert.match(html, /Start chat/);
   assert.match(html, /Trusted by 22M\+ developers/);
@@ -223,6 +227,7 @@ test('auth routes reject cross-origin requests without changing account data', a
   assert.equal((await readData()).users.length, 1);
 
   const emptyApp = await startApp(t);
+
   const setupResponse = await post(
     emptyApp.origin,
     '/actions/auth/setup',
