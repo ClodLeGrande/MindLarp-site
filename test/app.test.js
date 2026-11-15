@@ -45,6 +45,7 @@ async function startApp(t, options = {}) {
       ...blankConfiguration,
       NODE_ENV: 'production',
       NEXT_TELEMETRY_DISABLED: '1',
+      ALLOW_JSON_PRODUCTION: 'true',
       DATA_FILE: dataFile,
       PUBLIC_URL: origin,
       MINDLARP_UPSTREAM_URL: options.upstreamUrl || '',
