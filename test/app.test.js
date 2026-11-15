@@ -71,7 +71,27 @@ async function startApp(t, options = {}) {
     try {
       const response = await fetch(`${origin}/health`, { signal: AbortSignal.timeout(1000) });
       if (response.ok) {
-        return { origin, dataFile, readData: async () => JSON.parse(await readFile(dataFile, 'utf8')) };
+       return {
+  origin,
+  dataFile,
+  readData: async () => {
+    try {
+      return JSON.parse(await readFile(dataFile, 'utf8'));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+
+      return {
+        version: 1,
+        users: [],
+        sessions: [],
+        keys: [],
+        usage: [],
+        conversations: [],
+        passwordResets: [],
+      };
+    }
+  },
+};
       }
     } catch {}
     await delay(100);
