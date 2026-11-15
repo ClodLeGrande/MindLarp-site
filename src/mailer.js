@@ -6,6 +6,7 @@ export function createMailer(smtp) {
     host: smtp.host,
     port: smtp.port,
     secure: smtp.secure,
+    requireTLS: smtp.requireTLS,
     auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
   });
   return {

@@ -21,9 +21,18 @@ export async function POST(request) {
   else if (!scopes.length) error = 'Select at least one permission.';
   else if (!['never', '30', '90', '365'].includes(expires)) error = 'Choose a valid expiration period.';
   const keys = store.data.keys.filter((key) => key.userId === user.id);
+  const activeKeys = keys.filter((key) => !key.revokedAt && (!key.expiresAt || Date.parse(key.expiresAt) > Date.now()));
+  if (!error && activeKeys.length >= 10) error = 'You can have at most 10 active API keys. Revoke an existing key first.';
   if (error) return htmlResponse(keysContent({ user, csrf: session.csrf, keys, error, openCreate: true }), 'API keys', 400, { user, csrf: session.csrf, path: '/console/keys' });
   const secret = `ml_sk_live_${randomToken(32)}`;
   const key = { id: randomUUID(), userId: user.id, name, hash: hashToken(secret), prefix: secret.slice(0, 15), lastFour: secret.slice(-4), scopes, expiresAt: expires === 'never' ? null : new Date(Date.now() + Number(expires) * 86400000).toISOString(), createdAt: new Date().toISOString(), lastUsedAt: null, revokedAt: null };
-  await store.update((data) => { data.keys.push(key); });
+  let created = false;
+  await store.update((data) => {
+    const currentActiveKeys = data.keys.filter((item) => item.userId === user.id && !item.revokedAt && (!item.expiresAt || Date.parse(item.expiresAt) > Date.now()));
+    if (currentActiveKeys.length >= 10) return;
+    data.keys.push(key);
+    created = true;
+  });
+  if (!created) return htmlResponse(keysContent({ user, csrf: session.csrf, keys, error: 'You can have at most 10 active API keys. Revoke an existing key first.', openCreate: true }), 'API keys', 400, { user, csrf: session.csrf, path: '/console/keys' });
   return htmlResponse(keysContent({ user, csrf: session.csrf, keys: [key, ...keys], createdKey: { ...key, secret } }), 'API keys', 201, { user, csrf: session.csrf, path: '/console/keys' });
 }

@@ -22,7 +22,7 @@ export function proxy(request) {
   response.headers.set('Cache-Control', 'no-store');
   response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
   response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
-  if (!development) response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  if (!development) response.headers.set('Strict-Transport-Security', 'max-age=31536000');
   return response;
 }
 

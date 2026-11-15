@@ -18,22 +18,22 @@ import { checkSameOrigin } from '@/src/server/request-security.js';
 export async function POST(request) {
   const originError = checkSameOrigin(request);
 if (originError) return originError;
+  const { body, error } = await readForm(request);
+
+  if (error) return error;
+
+  const email = normalizeEmail(body.get('email'));
   const rate = consumeRateLimit(request, 'login', {
     limit: 10,
     windowMs: 5 * 60_000,
+    identifier: email || 'invalid-login',
   });
 
   if (!rate.allowed) {
     return formRedirect(request, '/login?error=limit');
   }
 
-  const { body, error } = await readForm(request);
-
-  if (error) return error;
-
   const store = await getStore();
-
-  const email = normalizeEmail(body.get('email'));
   const password = body.get('password');
 
   const user = store.data.users.find(
@@ -57,7 +57,7 @@ if (originError) return originError;
 );
   }
 
-  clearRateLimit(request, 'login');
+  clearRateLimit(request, 'login', email);
 
   const session = await createSession(user.id);
 

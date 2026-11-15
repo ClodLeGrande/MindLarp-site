@@ -1,5 +1,6 @@
 const nextConfig = {
   output: 'standalone',
+  poweredByHeader: false,
 
   allowedDevOrigins: ['127.0.0.1'],
 
@@ -9,10 +10,9 @@ const nextConfig = {
 
   async rewrites() {
     return [
-      {
-        source: '/assets/:path*',
-        destination: '/:path*',
-      },
+      { source: '/assets/logo.png', destination: '/logo.png' },
+      { source: '/assets/og.svg', destination: '/og.svg' },
+      { source: '/assets/style.css', destination: '/style.css' },
     ];
   },
 

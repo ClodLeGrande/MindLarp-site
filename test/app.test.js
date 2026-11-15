@@ -9,6 +9,8 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
+import { createPasswordUser, findOrCreateOAuthUser } from '../src/server/auth.js';
+import { getStore } from '../src/server/store.js';
 
 const password = 'a-very-good-password';
 const root = resolve(import.meta.dirname, '..');
@@ -16,8 +18,9 @@ const configurationKeys = [
   'MINDLARP_UPSTREAM_URL', 'MINDLARP_UPSTREAM_KEY', 'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET',
   'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET',
-  'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM',
-  'DATABASE_URL', 'DIRECT_URL', 'DATABASE_SSL', 'DATABASE_POOL_SIZE',
+  'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_REQUIRE_TLS', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM',
+  'ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION', 'INFERENCE_DAILY_REQUEST_LIMIT', 'ALLOW_HTTP_UPSTREAM',
+  'DATABASE_URL', 'DIRECT_URL', 'DATABASE_SSL', 'DATABASE_SSL_REJECT_UNAUTHORIZED', 'DATABASE_POOL_SIZE',
 ];
 
 async function listen(server) {
@@ -46,6 +49,8 @@ async function startApp(t, options = {}) {
       NODE_ENV: 'production',
       NEXT_TELEMETRY_DISABLED: '1',
       ALLOW_JSON_PRODUCTION: 'true',
+      ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'false',
+      INFERENCE_DAILY_REQUEST_LIMIT: '1000',
       DATA_FILE: dataFile,
       PUBLIC_URL: origin,
       MINDLARP_UPSTREAM_URL: options.upstreamUrl || '',
@@ -173,7 +178,7 @@ test('public pages, assets, SEO, trust strip, and health work on Next.js', async
   }
   assert.equal((await fetch(`${origin}/models/unknown`)).status, 404);
   assert.equal((await fetch(`${origin}/missing`)).status, 404);
-  assert.deepEqual(await (await fetch(`${origin}/health`)).json(), { status: 'ok', service: 'mindlarp-site' });
+  assert.deepEqual(await (await fetch(`${origin}/health`)).json(), { status: 'ok', service: 'mindlarp-site', database: 'json' });
   const response = await fetch(`${origin}/`);
   const html = await response.text();
   assert.match(html, /rel="canonical"/);
@@ -192,9 +197,13 @@ test('public pages, assets, SEO, trust strip, and health work on Next.js', async
   assert.match(html, /aria-live="off"/);
   assert.ok(html.indexOf('id="trusted-strip-title"') < html.indexOf('What is MindLarp?'));
   assert.ok(html.indexOf('What is MindLarp?') < html.indexOf('[ 02 ]'));
-  for (const path of ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/assets/og.svg', '/bootstrap.js', '/vendor/gsap.min.js', '/vendor/ScrollTrigger.min.js', '/vendor/lenis.min.js']) {
+  for (const path of ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/assets/og.svg', '/assets/logo.png', '/assets/style.css', '/bootstrap.js', '/vendor/gsap.min.js', '/vendor/ScrollTrigger.min.js', '/vendor/lenis.min.js']) {
     assert.equal((await fetch(`${origin}${path}`)).status, 200, path);
   }
+  assert.match(await (await fetch(`${origin}/robots.txt`)).text(), new RegExp(`Sitemap: ${origin}/sitemap\\.xml`));
+  assert.match(await (await fetch(`${origin}/sitemap.xml`)).text(), new RegExp(`<loc>${origin}/</loc>`));
+  for (const path of ['/assets/login', '/assets/docs', '/assets/health']) assert.equal((await fetch(`${origin}${path}`)).status, 404, path);
+  assert.equal(response.headers.get('x-powered-by'), null);
 });
 
 test('owner setup validates input and establishes a persistent session', async (t) => {
@@ -322,7 +331,7 @@ test('unconfigured inference and chat return truthful errors and record request 
 
 test('configured upstream completions proxy JSON and streams with usage accounting', async (t) => {
   const upstream = await startUpstream(t);
-  const { origin, readData } = await startApp(t, { upstreamUrl: upstream.url });
+  const { origin, readData } = await startApp(t, { upstreamUrl: upstream.url, env: { ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true' } });
   const cookie = await setupOwner(origin);
   const { secret } = await createKey(origin, cookie);
   let response = await fetch(`${origin}/v1/chat/completions`, {
@@ -348,7 +357,7 @@ test('configured upstream completions proxy JSON and streams with usage accounti
 
 test('chat persists real upstream answers and billing setup reports missing Stripe', async (t) => {
   const upstream = await startUpstream(t, 'A real upstream answer.');
-  const { origin, readData } = await startApp(t, { upstreamUrl: upstream.url });
+  const { origin, readData } = await startApp(t, { upstreamUrl: upstream.url, env: { ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true' } });
   const cookie = await setupOwner(origin);
   const html = await (await fetch(`${origin}/chat`, { headers: { Cookie: cookie } })).text();
   const csrf = html.match(/name="csrf" value="([^"]+)"/)[1];
@@ -422,10 +431,11 @@ test('signed Stripe webhook updates billing and rejects an invalid signature', a
   await setupOwner(origin);
   const userId = (await readData()).users[0].id;
 
-  async function sendEvent(type, object) {
+  async function sendEvent(type, object, { id = `evt_${type.replaceAll('.', '_')}`, created = null } = {}) {
     const payload = JSON.stringify({
-      id: `evt_${type.replaceAll('.', '_')}`,
+      id,
       type,
+      ...(created === null ? {} : { created }),
       data: { object },
     });
     const timestamp = Math.floor(Date.now() / 1000);
@@ -474,6 +484,43 @@ test('signed Stripe webhook updates billing and rejects an invalid signature', a
   assert.equal(billing.status, 'active');
   assert.equal(billing.priceId, 'price_test');
   assert.ok(billing.currentPeriodEnd);
+
+  response = await sendEvent('checkout.session.completed', {
+    id: 'cs_test',
+    customer: 'cus_test',
+    subscription: 'sub_test',
+    client_reference_id: userId,
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await readData()).users[0].billing.status, 'active');
+
+  response = await sendEvent('customer.subscription.deleted', {
+    id: 'sub_test',
+    customer: 'cus_test',
+    status: 'canceled',
+    items: { data: [{ price: { id: 'price_test' } }] },
+  }, { id: 'evt_subscription_deleted_new', created: 2000 });
+  assert.equal(response.status, 200);
+  assert.equal((await readData()).users[0].billing.status, 'canceled');
+
+  response = await sendEvent('customer.subscription.updated', {
+    id: 'sub_test',
+    customer: 'cus_test',
+    status: 'active',
+    items: { data: [{ price: { id: 'price_test' } }] },
+  }, { id: 'evt_subscription_updated_stale', created: 1000 });
+  assert.equal(response.status, 200);
+  billing = (await readData()).users[0].billing;
+  assert.equal(billing.status, 'canceled');
+
+  response = await sendEvent('customer.subscription.updated', {
+    id: 'sub_test',
+    customer: 'cus_test',
+    status: 'active',
+    items: { data: [{ price: { id: 'price_other' } }] },
+  }, { id: 'evt_subscription_wrong_price', created: 3000 });
+  assert.equal(response.status, 400);
+  assert.equal((await readData()).users[0].billing.status, 'canceled');
 
   const invalidPayload = JSON.stringify({
     id: 'evt_invalid',
@@ -538,7 +585,7 @@ test('SMTP recovery uses a hashed one-time token, revokes sessions, and permits 
   });
   const port = await listen(smtp);
   t.after(() => close(smtp));
-  const { origin, readData } = await startApp(t, { env: { SMTP_HOST: '127.0.0.1', SMTP_PORT: port, SMTP_FROM: 'MindLarp <no-reply@example.com>' } });
+  const { origin, readData } = await startApp(t, { env: { SMTP_HOST: '127.0.0.1', SMTP_PORT: port, SMTP_REQUIRE_TLS: 'false', SMTP_FROM: 'MindLarp <no-reply@example.com>' } });
   const oldCookie = await setupOwner(origin);
   let response = await post(origin, '/actions/auth/forgot-password', { email: 'unknown@example.com' });
   assert.equal(response.headers.get('location'), '/forgot-password?sent=1');
@@ -556,16 +603,155 @@ test('SMTP recovery uses a hashed one-time token, revokes sessions, and permits 
   assert.equal((await fetch(`${origin}/reset-password?token=${token}`)).status, 200);
   response = await post(origin, '/actions/auth/reset-password', { token, password: 'a-reset-good-password', confirmPassword: 'not-the-same-password' });
   assert.match(response.headers.get('location'), /error=invalid/);
-  response = await post(origin, '/actions/auth/reset-password', { token, password: 'a-reset-good-password', confirmPassword: 'a-reset-good-password' });
-  assert.equal(response.headers.get('location'), '/login?reset=success');
+  const resetAttempts = await Promise.all([
+    post(origin, '/actions/auth/reset-password', { token, password: 'a-reset-good-password', confirmPassword: 'a-reset-good-password' }),
+    post(origin, '/actions/auth/reset-password', { token, password: 'a-competing-reset-password', confirmPassword: 'a-competing-reset-password' }),
+  ]);
+  const successfulReset = resetAttempts.find((attempt) => attempt.headers.get('location') === '/login?reset=success');
+  assert.ok(successfulReset);
+  assert.equal(resetAttempts.filter((attempt) => attempt.headers.get('location') === '/login?reset=success').length, 1);
+  assert.equal(resetAttempts.filter((attempt) => attempt.headers.get('location')?.includes('error=invalid')).length, 1);
+  const winningPassword = resetAttempts.indexOf(successfulReset) === 0 ? 'a-reset-good-password' : 'a-competing-reset-password';
   data = await readData();
   assert.equal(data.passwordResets.length, 0);
   assert.equal(data.sessions.length, 0);
   assert.equal((await fetch(`${origin}/console`, { headers: { Cookie: oldCookie }, redirect: 'manual' })).headers.get('location'), '/login');
   assert.match((await post(origin, '/actions/auth/login', { email: 'ada@example.com', password })).headers.get('location'), /error=credentials/);
-  response = await post(origin, '/actions/auth/login', { email: 'ada@example.com', password: 'a-reset-good-password' });
+  response = await post(origin, '/actions/auth/login', { email: 'ada@example.com', password: winningPassword });
   assert.equal(response.status, 303);
   assert.match(response.headers.get('set-cookie'), /^ml_session=/);
   assert.match((await post(origin, '/actions/auth/reset-password', { token, password: 'another-reset-password', confirmPassword: 'another-reset-password' })).headers.get('location'), /error=invalid/);
   assert.match(await (await fetch(`${origin}/login?reset=success`)).text(), /Password updated\. Sign in with your new password\./);
+});
+
+test('OAuth never attaches a verified identity to an existing password account by email alone', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'mindlarp-oauth-test-'));
+  const previousDataFile = process.env.DATA_FILE;
+  const previousDatabaseUrl = process.env.DATABASE_URL;
+  process.env.DATA_FILE = join(directory, 'store.json');
+  process.env.DATABASE_URL = '';
+  delete globalThis.__mindLarpStorePromise;
+  t.after(async () => {
+    delete globalThis.__mindLarpStorePromise;
+    if (previousDataFile === undefined) delete process.env.DATA_FILE;
+    else process.env.DATA_FILE = previousDataFile;
+    if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = previousDatabaseUrl;
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  const user = await createPasswordUser({ displayName: 'Victim', email: 'victim@example.com', password, onlyIfEmpty: true });
+  await assert.rejects(findOrCreateOAuthUser({ provider: 'google', providerId: 'google-victim', email: 'victim@example.com', displayName: 'Victim' }), /original authentication method/);
+  let store = await getStore();
+  assert.equal(store.data.users.length, 1);
+  assert.equal(store.data.users[0].identities.length, 0);
+  assert.equal(store.data.users[0].id, user.id);
+
+  const oauthUser = await findOrCreateOAuthUser({ provider: 'github', providerId: '12345', email: 'oauth@example.com', displayName: 'OAuth User' });
+  const returningUser = await findOrCreateOAuthUser({ provider: 'github', providerId: '12345', email: 'oauth@example.com', displayName: 'OAuth User' });
+  store = await getStore();
+  assert.equal(returningUser.id, oauthUser.id);
+  assert.equal(store.data.users.length, 2);
+  assert.equal(oauthUser.identities.length, 1);
+});
+
+test('API key creation is capped at ten active keys per account', async (t) => {
+  const { origin, readData } = await startApp(t);
+  const cookie = await setupOwner(origin);
+  for (let index = 0; index < 10; index += 1) {
+    const { response } = await createKey(origin, cookie, `Key ${index + 1}`);
+    assert.equal(response.status, 201, `key ${index + 1}`);
+  }
+  const { response } = await createKey(origin, cookie, 'One key too many');
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /at most 10 active API keys/);
+  assert.equal((await readData()).keys.length, 10);
+});
+
+test('inference requires entitlement and enforces one daily account quota across API keys and chat', async (t) => {
+  const upstream = await startUpstream(t);
+  const restricted = await startApp(t, {
+    upstreamUrl: upstream.url,
+    env: {
+      STRIPE_SECRET_KEY: 'sk_test_mindlarp',
+      STRIPE_PRICE_ID: 'price_test',
+      STRIPE_WEBHOOK_SECRET: 'whsec_mindlarp_test',
+    },
+  });
+  const cookie = await setupOwner(restricted.origin);
+  const { secret } = await createKey(restricted.origin, cookie);
+  let response = await fetch(`${restricted.origin}/v1/chat/completions`, {
+    method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'MindLarp-Sol-1-Plus', messages: [{ role: 'user', content: 'Hello' }] }),
+  });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error.code, 'inference_access_denied');
+  const chatHtml = await (await fetch(`${restricted.origin}/chat`, { headers: { Cookie: cookie } })).text();
+  const csrf = chatHtml.match(/name="csrf" value="([^"]+)"/)[1];
+  response = await fetch(`${restricted.origin}/chat/messages`, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf, model: 'MindLarp-Sol-1-Plus', message: 'Hello' }) });
+  assert.equal(response.status, 403);
+  assert.equal(upstream.requests.length, 0);
+
+  const limitedUpstream = await startUpstream(t);
+  const limited = await startApp(t, { upstreamUrl: limitedUpstream.url, env: { ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true', INFERENCE_DAILY_REQUEST_LIMIT: '1' } });
+  const limitedCookie = await setupOwner(limited.origin);
+  const firstKey = await createKey(limited.origin, limitedCookie, 'First');
+  const secondKey = await createKey(limited.origin, limitedCookie, 'Second');
+  for (const [index, key] of [firstKey.secret, secondKey.secret].entries()) {
+    response = await fetch(`${limited.origin}/v1/chat/completions`, {
+      method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'MindLarp-Sol-1-Plus', messages: [{ role: 'user', content: 'Hello' }] }),
+    });
+    assert.equal(response.status, index === 0 ? 200 : 429);
+    if (index === 1) assert.equal((await response.json()).error.code, 'inference_quota_exceeded');
+  }
+  assert.equal(limitedUpstream.requests.length, 1);
+});
+
+test('upstream errors and oversized responses are bounded and do not leak provider diagnostics', async (t) => {
+  const upstream = createServer((request, response) => {
+    let body = '';
+    request.setEncoding('utf8');
+    request.on('data', (chunk) => { body += chunk; });
+    request.on('end', () => {
+      const payload = JSON.parse(body);
+      if (payload.messages.at(-1).content === 'oversize') {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ choices: [{ message: { role: 'assistant', content: 'x'.repeat(1_100_000) } }] }));
+        return;
+      }
+      response.writeHead(500, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: { message: 'provider-secret-diagnostic' } }));
+    });
+  });
+  const port = await listen(upstream);
+  t.after(() => close(upstream));
+  const { origin } = await startApp(t, { upstreamUrl: `http://127.0.0.1:${port}/v1`, env: { ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true' } });
+  const cookie = await setupOwner(origin);
+  const { secret } = await createKey(origin, cookie);
+  for (const message of ['failure', 'oversize']) {
+    const response = await fetch(`${origin}/v1/chat/completions`, {
+      method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'MindLarp-Sol-1-Plus', messages: [{ role: 'user', content: message }] }),
+    });
+    assert.equal(response.status, 502);
+    const result = await response.json();
+    assert.equal(result.error.code, message === 'oversize' ? 'upstream_response_too_large' : 'upstream_request_failed');
+    assert.doesNotMatch(JSON.stringify(result), /provider-secret-diagnostic/);
+  }
+});
+
+test('login rate limits are isolated by account and success cannot clear another account limit', async (t) => {
+  const { origin } = await startApp(t);
+  await setupOwner(origin);
+  await post(origin, '/actions/auth/register', { displayName: 'Grace Hopper', email: 'grace@example.com', password: 'another-good-password', confirmPassword: 'another-good-password' });
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await post(origin, '/actions/auth/login', { email: 'ada@example.com', password: 'wrong-password' });
+  }
+  let response = await post(origin, '/actions/auth/login', { email: 'ada@example.com', password });
+  assert.match(response.headers.get('location'), /error=limit/);
+  response = await post(origin, '/actions/auth/login', { email: 'grace@example.com', password: 'another-good-password' });
+  assert.match(response.headers.get('set-cookie'), /^ml_session=/);
+  response = await post(origin, '/actions/auth/login', { email: 'ada@example.com', password });
+  assert.match(response.headers.get('location'), /error=limit/);
 });

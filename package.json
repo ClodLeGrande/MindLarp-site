@@ -5,7 +5,7 @@
   "type": "module",
   "description": "MindLarp model family website, documentation, and API console",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.9.0"
   },
   "scripts": {
     "dev": "next dev -H ${HOST:-0.0.0.0} -p ${PORT:-5173}",
@@ -14,6 +14,7 @@
     "db:up": "docker compose up -d postgres",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
     "db:import": "node --env-file-if-exists=.env scripts/import-json.js",
+    "check:production": "node --env-file-if-exists=.env scripts/check-production.js",
     "test": "npm run build && node --test",
     "check": "shopt -s globstar nullglob && for file in proxy.js next.config.mjs src/**/*.js app/**/*.js components/**/*.js public/*.js scripts/**/*.js test/**/*.js; do node --check \"$file\" || exit 1; done"
   },

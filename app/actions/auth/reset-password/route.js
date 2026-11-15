@@ -16,13 +16,18 @@ export async function POST(request) {
   const password = body.get('password');
   if (typeof password !== 'string' || password.length < 12 || password.length > 1024 || password !== body.get('confirmPassword')) return formRedirect(request, `/reset-password?token=${encodeURIComponent(token)}&error=invalid`);
   const passwordRecord = await hashPassword(password);
+  let consumed = false;
   await store.update((data) => {
-    const stored = data.users.find((item) => item.id === user.id);
+    const currentReset = data.passwordResets.find((item) => item.userId === user.id && Date.parse(item.expiresAt) > Date.now() && safeEqual(item.tokenHash, hashToken(token)));
+    const stored = currentReset && data.users.find((item) => item.id === user.id);
+    if (!stored) return;
     stored.passwordSalt = passwordRecord.salt;
     stored.passwordHash = passwordRecord.hash;
     stored.updatedAt = new Date().toISOString();
     data.passwordResets = data.passwordResets.filter((item) => item.userId !== user.id);
     data.sessions = data.sessions.filter((item) => item.userId !== user.id);
+    consumed = true;
   });
+  if (!consumed) return formRedirect(request, '/reset-password?error=invalid');
   return setSessionCookie(formRedirect(request, '/login?reset=success'), '', 0);
 }

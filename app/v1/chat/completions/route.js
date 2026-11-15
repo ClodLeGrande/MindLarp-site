@@ -1,8 +1,8 @@
 import { models } from '@/src/content.js';
 import { apiKeyAuth } from '@/src/server/api.js';
 import { consumeRateLimit } from '@/src/server/rate-limit.js';
-import { apiError, readJson, rateLimitError } from '@/src/server/responses.js';
-import { recordUsage } from '@/src/server/usage.js';
+import { apiError, readBody, readJson, rateLimitError } from '@/src/server/responses.js';
+import { getInferenceAccessError, recordUsage } from '@/src/server/usage.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   const auth = await apiKeyAuth(request, 'inference:write');
   if (auth.error) return apiError(...auth.error);
-  const rate = consumeRateLimit(request, 'inference', { limit: 120, windowMs: 60_000, identifier: auth.key.id });
+  const rate = consumeRateLimit(request, 'inference', { limit: 120, windowMs: 60_000, identifier: auth.key.userId });
   if (!rate.allowed) return rateLimitError(rate);
   const { body, error } = await readJson(request);
   if (error) return error;
@@ -24,7 +24,9 @@ export async function POST(request) {
     await recordUsage({ key: auth.key, endpoint: '/v1/chat/completions', model: model.id, status: 503 });
     return apiError(503, 'Model inference is not configured. Set MINDLARP_UPSTREAM_URL on the server.', 'service_unavailable', 'inference_not_configured');
   }
-  const upstreamBody = { model: model.id, messages: body.messages };
+  const accessError = await getInferenceAccessError(auth.key.userId);
+  if (accessError) return apiError(...accessError);
+  const upstreamBody = { model: model.id, messages: body.messages, max_tokens: 4096 };
   for (const field of ['temperature', 'max_tokens', 'stream']) {
     if (body[field] !== undefined) upstreamBody[field] = body[field];
   }
@@ -34,15 +36,21 @@ export async function POST(request) {
       headers: { 'Content-Type': 'application/json', ...(process.env.MINDLARP_UPSTREAM_KEY ? { Authorization: `Bearer ${process.env.MINDLARP_UPSTREAM_KEY}` } : {}) },
       body: JSON.stringify(upstreamBody), signal: AbortSignal.timeout(60000),
     });
-    if (body.stream && response.body) {
+    if (body.stream && response.ok && response.body) {
       await recordUsage({ key: auth.key, endpoint: '/v1/chat/completions', model: model.id, status: response.status });
       return new Response(response.body, { status: response.status, headers: { 'Content-Type': response.headers.get('content-type') || 'text/event-stream', 'Cache-Control': 'no-store' } });
     }
-    const text = await response.text();
-    let usage = null;
-    try { usage = JSON.parse(text).usage; } catch {}
-    await recordUsage({ key: auth.key, endpoint: '/v1/chat/completions', model: model.id, status: response.status, usage });
-    return new Response(text, { status: response.status, headers: { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
+    const { text, error: responseError } = await readBody(response, 1_048_576);
+    if (responseError) {
+      await recordUsage({ key: auth.key, endpoint: '/v1/chat/completions', model: model.id, status: 502 });
+      return apiError(502, 'The inference service returned an oversized response.', 'upstream_error', 'upstream_response_too_large');
+    }
+    let completion;
+    try { completion = JSON.parse(text); } catch {}
+    await recordUsage({ key: auth.key, endpoint: '/v1/chat/completions', model: model.id, status: response.status, usage: completion?.usage });
+    if (!response.ok) return apiError(502, 'The inference service rejected the request.', 'upstream_error', 'upstream_request_failed');
+    if (!completion || Array.isArray(completion) || typeof completion !== 'object') return apiError(502, 'The inference service returned an invalid response.', 'upstream_error', 'invalid_upstream_response');
+    return new Response(text, { status: response.status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
   } catch {
     await recordUsage({ key: auth.key, endpoint: '/v1/chat/completions', model: model.id, status: 502 });
     return apiError(502, 'The configured inference service could not be reached.', 'upstream_error', 'upstream_unavailable');

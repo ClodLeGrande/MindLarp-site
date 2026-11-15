@@ -1,4 +1,4 @@
-import { migrateDatabase } from './server/database.js';
+import { migrateDatabase, verifyDatabaseMigrations } from './server/database.js';
 
 const iso = (value) => value ? new Date(value).toISOString() : null;
 const definitions = {
@@ -58,7 +58,8 @@ export class PostgresStore {
   }
 
   async init() {
-    await migrateDatabase(this.pool);
+    if (process.env.NODE_ENV === 'production') await verifyDatabaseMigrations(this.pool);
+    else await migrateDatabase(this.pool);
     await this.refresh();
     return this;
   }
