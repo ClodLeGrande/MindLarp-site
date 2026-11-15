@@ -1,10 +1,24 @@
 export function checkSameOrigin(request) {
-  const expectedOrigin = new URL(request.url).origin;
+  const configuredUrl = process.env.PUBLIC_URL;
+
+  let expectedOrigin;
+
+  try {
+    expectedOrigin = configuredUrl
+      ? new URL(configuredUrl).origin
+      : new URL(request.url).origin;
+  } catch {
+    return new Response('Forbidden', {
+      status: 403,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  }
+
   const origin = request.headers.get('origin');
 
   if (origin !== null) {
     try {
-      if (new URL(origin).origin === expectedOrigin && new URL(origin).origin === origin) {
+      if (new URL(origin).origin === expectedOrigin && origin === new URL(origin).origin) {
         return null;
       }
     } catch {
