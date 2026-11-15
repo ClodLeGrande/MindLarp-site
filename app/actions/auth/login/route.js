@@ -52,6 +52,7 @@ export async function POST(request) {
   request,
   '/login?error=credentials&email=' + encodeURIComponent(email)
 );
+  }
 
   clearRateLimit(request, 'login');
 
