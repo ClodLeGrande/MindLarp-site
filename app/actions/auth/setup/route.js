@@ -1,11 +1,15 @@
 import { createPasswordUser, createSession, normalizeEmail, setSessionCookie, validEmail } from '@/src/server/auth.js';
-import { formRedirect } from '@/src/server/responses.js';
+import { consumeRateLimit } from '@/src/server/rate-limit.js';
+import { formRedirect, readForm } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
 
 export async function POST(request) {
+  const rate = consumeRateLimit(request, 'setup', { limit: 5, windowMs: 15 * 60_000 });
+  if (!rate.allowed) return formRedirect(request, '/setup?error=limit');
+  const { body, error } = await readForm(request);
+  if (error) return error;
   const store = await getStore();
   if (store.data.users.length) return formRedirect(request, '/login');
-  const body = await request.formData();
   const displayName = String(body.get('displayName') || '').trim();
   const email = normalizeEmail(body.get('email'));
   const password = body.get('password');

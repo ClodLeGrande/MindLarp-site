@@ -2,13 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { createMailer } from '@/src/mailer.js';
 import { hashToken, normalizeEmail, randomToken, validEmail } from '@/src/server/auth.js';
 import { publicUrl, smtpConfig } from '@/src/server/config.js';
-import { formRedirect } from '@/src/server/responses.js';
+import { consumeRateLimit } from '@/src/server/rate-limit.js';
+import { formRedirect, readForm } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
 
 export async function POST(request) {
+  const rate = consumeRateLimit(request, 'recovery', { limit: 5, windowMs: 15 * 60_000 });
+  if (!rate.allowed) return formRedirect(request, '/forgot-password?error=limit');
+  const { body, error } = await readForm(request);
+  if (error) return error;
   const smtp = smtpConfig();
   if (!smtp.host) return formRedirect(request, '/forgot-password?error=smtp');
-  const body = await request.formData();
   const email = normalizeEmail(body.get('email'));
   if (!validEmail(email)) return formRedirect(request, '/forgot-password?error=email');
   const store = await getStore();

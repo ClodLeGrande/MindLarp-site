@@ -1,5 +1,8 @@
 const nextConfig = {
   allowedDevOrigins: ['127.0.0.1'],
+  outputFileTracingIncludes: {
+    '/': ['./db/migrations/*.sql'],
+  },
   async rewrites() {
     return [{ source: '/assets/:path*', destination: '/:path*' }];
   },

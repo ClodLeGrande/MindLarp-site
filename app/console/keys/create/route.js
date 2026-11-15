@@ -3,11 +3,13 @@ import { requireUser, requireCsrf, randomToken, hashToken } from '@/src/server/a
 import { htmlResponse } from '@/src/server/html.jsx';
 import { keysContent } from '@/src/views/console.js';
 import { notFoundContent } from '@/src/views/public.js';
+import { readForm } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
 
 export async function POST(request) {
   const auth = await requireUser();
-  const body = await request.formData();
+  const { body, error: bodyError } = await readForm(request);
+  if (bodyError) return bodyError;
   if (!requireCsrf(Object.fromEntries(body), auth)) return htmlResponse(notFoundContent(), 'Forbidden', 403);
   const { user, session } = auth;
   const store = await getStore();

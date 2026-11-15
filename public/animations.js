@@ -20,8 +20,10 @@ export function startAnimations() {
       const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
       intro.from(title, { y: 55, opacity: 0, clipPath: 'inset(0 0 100% 0)', duration: 1.1 })
         .from('[data-hero-copy]', { y: 22, opacity: 0, duration: 0.8 }, '-=0.65')
-        .from('.home-intro-meta', { opacity: 0, duration: 0.6 }, '-=0.45')
-        .from('.home-product', { y: 45, opacity: 0, duration: 0.8, stagger: 0.1 }, '-=0.35');
+        .from('.hero-actions, .hero-capabilities', { y: 12, opacity: 0, duration: 0.6, stagger: 0.1 }, '-=0.45')
+        .from('[data-hero-terminal]', { y: 45, opacity: 0, duration: 0.9 }, '-=0.3')
+        .from('.terminal-line', { x: -8, opacity: 0, duration: 0.35, stagger: 0.12 }, '-=0.35')
+        .from('.hero-orbit', { opacity: 0, scale: 0.8, duration: 1.4 }, 0);
     }
     ScrollTrigger.batch('[data-reveal]:not(.home-product)', {
       start: 'top 88%', once: true,

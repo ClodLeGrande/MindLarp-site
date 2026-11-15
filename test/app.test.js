@@ -17,6 +17,7 @@ const configurationKeys = [
   'GOOGLE_CLIENT_SECRET', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET',
   'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET',
   'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM',
+  'DATABASE_URL', 'DIRECT_URL', 'DATABASE_SSL', 'DATABASE_POOL_SIZE',
 ];
 
 async function listen(server) {
@@ -161,7 +162,7 @@ test('public pages, assets, SEO, trust strip, and health work on Next.js', async
   for (const name of ['Salesforce', 'Intel', 'Cisco', 'Red Hat', 'Revolut']) assert.match(html, new RegExp(`aria-label="${name}"`));
   assert.match(html, /aria-live="off"/);
   assert.ok(html.indexOf('id="trusted-strip-title"') < html.indexOf('What is MindLarp?'));
-  assert.ok(html.indexOf('What is MindLarp?') < html.indexOf('[02] GET STARTED'));
+  assert.ok(html.indexOf('What is MindLarp?') < html.indexOf('[ 02 ]'));
   for (const path of ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/assets/og.svg', '/bootstrap.js', '/vendor/gsap.min.js', '/vendor/ScrollTrigger.min.js', '/vendor/lenis.min.js']) {
     assert.equal((await fetch(`${origin}${path}`)).status, 200, path);
   }

@@ -13,7 +13,7 @@ export default async function Page({ searchParams }) {
   const errors = {
     oauth: 'Social sign-in could not be completed. Try again or use your password.',
     credentials: 'Email or password is incorrect.',
-    limit: 'Too many attempts. Try again in a minute.',
+    limit: 'Too many attempts. Try again later.',
     google: 'Google sign-in is not configured on this server.',
     github: 'GitHub sign-in is not configured on this server.',
   };

@@ -11,6 +11,7 @@ export function proxy(request) {
     "img-src 'self' data:",
     `connect-src 'self'${development ? ' ws:' : ''}`,
     "frame-ancestors 'none'",
+    "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
   ].join('; ');
@@ -19,6 +20,9 @@ export function proxy(request) {
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('Content-Security-Policy', csp);
   response.headers.set('Cache-Control', 'no-store');
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+  if (!development) response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   return response;
 }
 

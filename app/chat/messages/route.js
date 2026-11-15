@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { models } from '@/src/content.js';
 import { getCurrentAuth, requireCsrf } from '@/src/server/auth.js';
-import { apiError, readJson, json } from '@/src/server/responses.js';
+import { consumeRateLimit } from '@/src/server/rate-limit.js';
+import { apiError, readJson, json, rateLimitError } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
 import { recordUsage } from '@/src/server/usage.js';
 
@@ -10,7 +11,9 @@ export const runtime = 'nodejs';
 export async function POST(request) {
   const auth = await getCurrentAuth();
   if (!auth) return apiError(401, 'Sign in to continue.', 'authentication_error');
-  const { body, error } = await readJson(request);
+  const rate = consumeRateLimit(request, 'chat', { limit: 30, windowMs: 60_000, identifier: auth.user.id });
+  if (!rate.allowed) return rateLimitError(rate);
+  const { body, error } = await readJson(request, 65_536);
   if (error) return error;
   if (!requireCsrf(body, auth)) return apiError(403, 'The session token is invalid. Refresh and try again.', 'csrf_error');
   const { user } = auth;
@@ -27,7 +30,7 @@ export async function POST(request) {
     try { completion = JSON.parse(text); } catch {}
     await recordUsage({ userId: user.id, endpoint: '/chat', model: model.id, status: response.status, usage: completion?.usage });
     const answer = completion?.choices?.[0]?.message?.content;
-    if (!response.ok || typeof answer !== 'string') return apiError(response.ok ? 502 : response.status, completion?.error?.message || 'The model service returned an invalid response.', 'upstream_error');
+    if (!response.ok || typeof answer !== 'string') return apiError(response.ok ? 502 : response.status, 'The model service could not complete this request.', 'upstream_error');
     const timestamp = new Date().toISOString();
     await store.update((data) => {
       let stored = data.conversations.find((item) => item.userId === user.id);

@@ -8,6 +8,6 @@ export default async function Page({ searchParams }) {
   const store = await getStore();
   if (!store.data.users.length) redirect('/setup');
   const query = await searchParams;
-  const errors = { smtp: 'Password recovery is not configured on this server. Contact the administrator.', email: 'Enter a valid email address.' };
+  const errors = { smtp: 'Password recovery is not configured on this server. Contact the administrator.', email: 'Enter a valid email address.', limit: 'Too many recovery attempts. Try again later.' };
   return forgotPasswordPage({ error: errors[query.error] || '', notice: query.sent === '1' ? 'If an account matches that email, password reset instructions will be sent. The link is valid for 30 minutes.' : '', email: query.email || '' });
 }

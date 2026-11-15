@@ -11,29 +11,41 @@ function modelArtwork(model, large = false) {
 }
 
 export function homePage() {
-  const products = [
-    { title: 'Chat', description: 'A focused place to think, write, and work with every MindLarp model.', href: '/chat', action: 'Start chat', art: '<div class="mock-chat"><span>What can I help you think through?</span><div>Ask MindLarp anything <b>↑</b></div><small>MindLarp-Sol-1-Plus</small></div>' },
-    { title: 'API', description: 'A familiar, OpenAI-compatible API for your apps, scripts, and agents.', href: '/docs/api-reference', action: 'Read docs', art: '<div class="mock-terminal"><i></i><span>POST /v1/chat/completions</span><p>model: MindLarp-Sol-1-Plus</p><small>200 OK · streaming</small></div>' },
-    { title: 'Models', description: 'Two complementary models for everyday work and deep reasoning.', href: '/models', action: 'Explore models', art: '<div class="mock-orb"><span></span><i></i><b></b></div>' },
-    { title: 'Console', description: 'Manage API keys, understand usage, and control billing from one place.', href: '/console', action: 'Open console', art: '<div class="mock-console"><span>WORKSPACE / USAGE</span><div><i></i><i></i><i></i><i></i><i></i></div><small>Requests · Tokens · Keys</small></div>' },
-  ];
-  const productCards = products.map((product, index) => `<article class="home-product" data-reveal><a href="${product.href}" class="product-art product-art-${index + 1}" aria-label="${product.title}">${product.art}</a><h3><a href="${product.href}">${product.title}</a></h3><p>${product.description}</p><a href="${product.href}" class="button button-light product-button">${product.action} ${icon('arrow')}</a></article>`).join('');
   const features = [
-    ['Any task', 'Fast transformations, nuanced writing, analysis, and multi-step reasoning'],
-    ['One API', 'A consistent OpenAI-compatible interface across the whole model family'],
-    ['Long context', 'Up to 512K tokens for large documents and complex working sessions'],
-    ['Tool calling', 'Connect models to your own functions, services, and structured workflows'],
-    ['Streaming', 'Responsive token-by-token output for interactive product experiences'],
-    ['Scoped access', 'Separate credentials, explicit permissions, and immediate revocation'],
-    ['Clear usage', 'Request and token reporting by model, endpoint, and time period'],
-    ['Your control', 'Simple deployment, configurable upstreams, and no hidden demo responses'],
+    ['01', 'Deep reasoning', 'Work through ambiguous questions, complex constraints, and the details that matter.'],
+    ['02', '512K context', 'Keep large documents, long conversations, and substantial codebases in view.'],
+    ['03', 'Tool calling', 'Connect models to your functions and structured workflows with a familiar API.'],
+    ['04', 'Streaming by default', 'Build responsive experiences with token-by-token output and clear errors.'],
+    ['05', 'Your credentials', 'Create scoped API keys, set expiration, and revoke access immediately.'],
+    ['06', 'Visible usage', 'Follow requests, tokens, model activity, and billing from one workspace.'],
   ];
-  const content = `<section class="home-intro"><h1 data-hero-title>The open intelligence model family</h1><p data-hero-copy>Start a conversation or build with the API. MindLarp gives you two complementary models for everyday work and deeper reasoning.</p><div class="home-intro-meta"><span><span class="status-dot"></span> MINDLARP SOL 1 AVAILABLE</span><a href="/docs/getting-started">GET STARTED ${icon('arrow')}</a></div></section>
-  <section class="home-products" aria-label="Products">${productCards}</section>
+  const content = `<section class="hermes-hero">
+    <div class="hero-orbit" aria-hidden="true"><span></span><span></span><span></span><b>M</b></div>
+    <div class="hero-terminal-status"><span class="status-dot"></span> MINDLARP / SOL 1 SERIES <span>SYSTEM ONLINE</span></div>
+    <h1 data-hero-title>Intelligence.<br><span>In your element.</span></h1>
+    <p data-hero-copy>Meet the MindLarp family by GonidonCloud. Two models for fast, focused work and deeper reasoning — in chat, in your code, and in your product.</p>
+    <div class="button-row hero-actions"><a href="/chat" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/docs/getting-started" class="button button-ghost">Build with the API <span>↗</span></a></div>
+    <div class="hero-capabilities"><span>OPENAI COMPATIBLE</span><span>512K CONTEXT</span><span>TOOL CALLING</span></div>
+    <div class="hero-terminal" data-hero-terminal>
+      <div class="terminal-bar"><div><i></i><i></i><i></i></div><span>mindlarp — session 001</span><span>UTF-8 / CONNECTED</span></div>
+      <div class="terminal-body"><div class="terminal-line"><span class="terminal-prompt">❯</span><span>mindlarp chat --model sol-1-plus</span></div><div class="terminal-line terminal-muted">Loading MindLarp-Sol-1-Plus... <span>done</span></div><div class="terminal-rule"></div><div class="terminal-line"><span class="terminal-prompt">you ›</span><span>Turn a complex idea into a clear plan.</span></div><div class="terminal-line terminal-answer"><span>mindlarp ›</span><p>Start with the outcome. Map the constraints.<br>Then make the next action unmistakable.</p></div><div class="terminal-line terminal-cursor"><span>❯</span><i></i></div></div>
+      <div class="terminal-footer"><span><span class="status-dot"></span> MindLarp-Sol-1-Plus</span><span>512K / STREAMING</span></div>
+    </div>
+  </section>
   ${trustedStrip()}
-  <section class="section home-about" data-reveal><span class="section-kicker">[01] THE FAMILY</span><h2>What is MindLarp?</h2><p class="home-about-lead">MindLarp is a family of AI models by GonidonCloud. Use it in a focused chat, from your own code with the API, or inside your product. <a href="/docs">Read the docs.</a></p><div class="home-feature-list">${features.map(([title, text], index) => `<div data-reveal><span>0${index + 1}</span><h3>${title}</h3><p>${text}</p></div>`).join('')}</div></section>
-  <section class="section home-start"><span class="section-kicker">[02] GET STARTED</span><h2>Start with a thought.</h2><p>The easiest way to begin is a conversation. When you are ready to build, create a key and make your first API request.</p><div class="home-start-grid"><div data-reveal><span>01</span><h3>Start chatting</h3><p>Choose a model and bring your next question, draft, or difficult problem.</p><a href="/chat" class="text-link">Start chat ${icon('arrow')}</a></div><div data-reveal><span>02</span><h3>Create an API key</h3><p>Make a scoped credential in the console. The full secret is shown once.</p><a href="/console/keys" class="text-link">Open keys ${icon('arrow')}</a></div><div data-reveal><span>03</span><h3>Build something useful</h3><p>Use the quickstart and inspect real usage as your application grows.</p><a href="/docs/getting-started" class="text-link">Read quickstart ${icon('arrow')}</a></div></div></section>
-  <section class="home-console-cta" data-reveal><span class="section-kicker">[03] MINDLARP CONSOLE</span><h2>Everything you need<br>for working with AI.</h2><p>Models, conversations, API keys, usage, and billing. One workspace with no detours.</p><div class="button-row"><a href="/chat" class="button button-light">Start chat ${icon('arrow')}</a><a href="/console" class="button button-ghost">Open console</a></div><div class="console-cta-word" aria-hidden="true">mindlarp</div></section>`;
+  <section class="section home-about" data-reveal><div class="section-label"><span>[ 01 ]</span><span>THE MODEL FAMILY</span></div><div class="section-split-heading"><h2>What is MindLarp?</h2><p>A family of AI models designed to work wherever you do. Start with a conversation, then use the same intelligence through one consistent, OpenAI-compatible API. <a href="/docs">Explore the documentation ↗</a></p></div><div class="hermes-feature-grid">${features.map(([index, title, text]) => `<article data-reveal><span>${index}</span><h3>${title}</h3><p>${text}</p><i aria-hidden="true">↗</i></article>`).join('')}</div></section>
+  <section class="section home-models"><div class="section-label"><span>[ 02 ]</span><span>CHOOSE YOUR DEPTH</span></div><div class="section-split-heading"><h2>One family.<br>Two ways forward.</h2><p>Move between speed and deeper reasoning without changing your integration.</p></div><div class="home-model-grid">${models.map((model) => `<article class="home-model-card" data-reveal><div class="model-card-top"><span>${model.index} / SOL 1</span><span class="status-dot"></span></div><div class="model-glyph" aria-hidden="true">${model.slug === 'sol-1-plus' ? '✦' : '◈'}</div><span class="micro-label">${model.eyebrow}</span><h3>${model.name}</h3><p>${model.description}</p><dl><div><dt>CONTEXT</dt><dd>${model.context}</dd></div><div><dt>PROFILE</dt><dd>${model.latency}</dd></div></dl><a href="/models/${model.slug}" class="text-link">Explore model ${icon('arrow')}</a></article>`).join('')}</div></section>
+  <section class="section home-quickstart"><div class="section-label"><span>[ 03 ]</span><span>QUICKSTART</span></div><div class="quickstart-grid"><div><h2>From zero to<br>first response.</h2><p>One key. One endpoint. No new mental model required.</p><ol class="quickstart-steps"><li><span>01</span><div><strong>Create a scoped API key</strong><small>Your full secret is shown once.</small></div></li><li><span>02</span><div><strong>Choose your model</strong><small>Plus for momentum. Max for depth.</small></div></li><li><span>03</span><div><strong>Make something useful</strong><small>Stream results and inspect real usage.</small></div></li></ol><a href="/docs/getting-started" class="text-link">Read the quickstart ${icon('arrow')}</a></div><div class="code-window"><div class="code-toolbar"><span><i class="window-dot"></i> request.sh</span><button class="copy-button js-copy" data-copy-target="home-code" type="button">${icon('copy')} Copy</button></div><pre id="home-code"><code><span class="code-muted">$</span> curl http://localhost:5173/v1/chat/completions \\
+  -H <span class="code-green">"Authorization: Bearer $MINDLARP_API_KEY"</span> \\
+  -H <span class="code-green">"Content-Type: application/json"</span> \\
+  -d <span class="code-green">'{
+    "model": "MindLarp-Sol-1-Plus",
+    "messages": [{
+      "role": "user",
+      "content": "Make the complex clear."
+    }]
+  }'</span></code></pre><div class="code-result"><span>200 OK</span><span>RESPONSE STREAMING <i></i></span></div></div></div></section>
+  <section class="home-console-cta" data-reveal><span class="section-kicker">[ 04 ] YOUR NEXT SESSION</span><h2>Bring the question.<br><span>MindLarp is ready.</span></h2><p>Chat with Sol 1, create an API key, and make your first request.</p><div class="button-row"><a href="/chat" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/console" class="button button-ghost">Open console</a></div><div class="console-cta-word" aria-hidden="true">M_</div></section>`;
   return publicLayout({ title: 'The open intelligence model family', description: 'Meet MindLarp Sol 1 Plus and Sol 1 Max: two AI models for everyday work and deeper reasoning. Start a chat or build with one simple API.', path: '/', content, bodyClass: 'home-page' });
 }
 
