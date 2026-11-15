@@ -162,7 +162,7 @@ test('public pages, assets, SEO, trust strip, and health work on Next.js', async
   assert.match(html, /application\/ld\+json/);
   assert.match(response.headers.get('content-security-policy'), /nonce-/);
   assert.match(response.headers.get('content-security-policy'), /strict-dynamic/);
-  assert.match(html, /? 2026 GonidonCloud/);
+  assert.match(html, /\u00A9 2026 GonidonCloud/);
   for (const name of ['GitHub', 'YouTube', 'Hugging Face', 'Telegram', 'Discord']) assert.match(html, new RegExp(`aria-label="MindLarp on ${name}"`));
   assert.match(html, /Start chat/);
   assert.match(html, /Trusted by 22M\+ developers/);
