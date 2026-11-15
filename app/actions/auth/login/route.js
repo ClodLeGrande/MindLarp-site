@@ -15,10 +15,9 @@ import {
 import { getStore } from '@/src/server/store.js';
 import { checkSameOrigin } from '@/src/server/request-security.js';
 
-const originError = checkSameOrigin(request);
-if (originError) return originError;
-
 export async function POST(request) {
+  const originError = checkSameOrigin(request);
+if (originError) return originError;
   const rate = consumeRateLimit(request, 'login', {
     limit: 10,
     windowMs: 5 * 60_000,

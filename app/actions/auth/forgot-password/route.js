@@ -7,10 +7,9 @@ import { consumeRateLimit } from '@/src/server/rate-limit.js';
 import { formRedirect, readForm } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
 
-const originError = checkSameOrigin(request);
-if (originError) return originError;
-
 export async function POST(request) {
+  const originError = checkSameOrigin(request);
+if (originError) return originError;
   const rate = consumeRateLimit(request, 'recovery', { limit: 5, windowMs: 15 * 60_000 });
   if (!rate.allowed) return formRedirect(request, '/forgot-password?error=limit');
   const { body, error } = await readForm(request);

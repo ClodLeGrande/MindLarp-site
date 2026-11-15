@@ -10,10 +10,9 @@ import { formRedirect, readForm } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
 import { checkSameOrigin } from '@/src/server/request-security.js';
 
-const originError = checkSameOrigin(request);
-if (originError) return originError;
-
 export async function POST(request) {
+  const originError = checkSameOrigin(request);
+if (originError) return originError;
   const rate = consumeRateLimit(request, 'register', {
     limit: 5,
     windowMs: 60 * 60_000,
