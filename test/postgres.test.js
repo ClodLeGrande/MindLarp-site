@@ -6,7 +6,7 @@ import { PostgresStore } from '../src/postgres-store.js';
 
 const administratorUrl = process.env.TEST_DATABASE_URL;
 
-test('PostgreSQL migrations, normalized writes, refresh, revocation, and cleanup', { skip: !administratorUrl, timeout: 60000 }, async (t) => {
+test('PostgreSQL migrations, production schema verification, writes, refresh, revocation, and cleanup', { skip: !administratorUrl, timeout: 60000 }, async (t) => {
   const name = `mindlarp_test_${randomUUID().replaceAll('-', '')}`;
   const administrator = createPool(administratorUrl);
   await administrator.query(`CREATE DATABASE "${name}"`);
@@ -20,6 +20,12 @@ test('PostgreSQL migrations, normalized writes, refresh, revocation, and cleanup
   });
 
   const store = await new PostgresStore(pool).init();
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  t.after(() => {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  });
   const userId = randomUUID();
   const keyId = randomUUID();
   const sessionId = randomUUID();

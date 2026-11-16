@@ -21,7 +21,7 @@ MindLarp does not include a model runtime. Chat and inference return a clear `50
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 20.9 or newer
 - npm
 - Docker with Docker Compose for the local database
 - Optional: an OpenAI-compatible inference endpoint
@@ -55,14 +55,16 @@ docker compose ps
 curl http://localhost:5173/health
 ```
 
-For production, build and start Next.js:
+For production, apply database migrations, validate the real deployment environment without printing secrets, build, and then start Next.js:
 
 ```bash
+npm run db:migrate
+npm run check:production
 npm run build
 npm start
 ```
 
-The production server defaults to port `3000`; set `PORT=5173` to keep the development port. If development reports `EADDRINUSE`, stop the existing process or choose another port with `PORT=5174 npm run dev`.
+The production server defaults to port `3000`; set `PORT=5173` to keep the development port. `check:production` loads `.env` when present and fails before rollout if PostgreSQL, HTTPS, inference quota/entitlement, SMTP TLS, or provider pairings are unsafe. If development reports `EADDRINUSE`, stop the existing process or choose another port with `PORT=5174 npm run dev`.
 
 ## Configuration
 
@@ -76,17 +78,21 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `PUBLIC_URL` | Production | Public origin without a trailing slash. Used for OAuth callbacks, reset links, canonical URLs, and Stripe redirects. |
 | `DATABASE_URL` | For PostgreSQL | Application PostgreSQL connection. When set, it takes precedence over JSON storage. Use a pooler for hosted Supabase. |
 | `DIRECT_URL` | Recommended | Direct PostgreSQL connection used by migration and import commands. Falls back to `DATABASE_URL`. |
-| `DATABASE_POOL_SIZE` | No | Maximum PostgreSQL connections per Node.js process; defaults to `10`. |
+| `DATABASE_POOL_SIZE` | No | Maximum PostgreSQL connections per Node.js process; defaults to `10`. Multiply it by the replica count when sizing PostgreSQL. |
+| `DATABASE_QUERY_TIMEOUT`, `DATABASE_STATEMENT_TIMEOUT`, `DATABASE_LOCK_TIMEOUT` | No | Millisecond limits; default to `15000`, `15000`, and `5000`. Use larger migration-role values only when a schema change requires them. |
 | `DATABASE_SSL` | No | Set `true` when the server requires TLS. Local Docker does not require it. |
-| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No | Defaults to `true`; keep certificate verification enabled in production. |
+| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No | Defaults to `true`; disabling certificate verification is rejected by production validation. |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | No | Local Docker database settings; defaults are development-only `postgres` values. |
 | `POSTGRES_PORT` | No | Local host port; defaults to `54322`. |
 | `DATA_FILE` | JSON fallback | JSON path when `DATABASE_URL` is empty; defaults to `./data/mindlarp.json`. |
 | `SUPABASE_URL` | Future integration | Supabase project URL, reserved for server-side integration. |
 | `SUPABASE_PUBLISHABLE_KEY` | Future integration | Publishable key for a future explicitly designed browser integration; currently unused. |
 | `SUPABASE_SECRET_KEY` | Future integration | Secret key for server-side Supabase APIs; never expose it to the browser. |
-| `MINDLARP_UPSTREAM_URL` | For inference | OpenAI-compatible base URL, for example `https://provider.example/v1`. |
+| `MINDLARP_UPSTREAM_URL` | For inference | OpenAI-compatible base URL, for example `https://provider.example/v1`. External production endpoints must use HTTPS. |
 | `MINDLARP_UPSTREAM_KEY` | If required | Bearer token sent to the inference provider. |
+| `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION` | No | Explicit development/private-deployment bypass for subscription checks. In production, either leave this unset and configure Stripe or set it deliberately for a trusted non-billing deployment. |
+| `INFERENCE_DAILY_REQUEST_LIMIT` | For production inference | Positive account-level daily request quota shared by API keys and chat; production validation requires it whenever inference is enabled. |
+| `ALLOW_HTTP_UPSTREAM` | No | Explicitly allow a non-local HTTP upstream only on a trusted private network. HTTPS is required otherwise. |
 | `GOOGLE_CLIENT_ID` | For Google login | Google OAuth client ID. |
 | `GOOGLE_CLIENT_SECRET` | For Google login | Google OAuth client secret. |
 | `GITHUB_CLIENT_ID` | For GitHub login | GitHub OAuth client ID. |
@@ -97,6 +103,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `SMTP_HOST` | For recovery | SMTP server hostname. |
 | `SMTP_PORT` | No | SMTP port; defaults to `587`. |
 | `SMTP_SECURE` | No | `true` for implicit TLS, commonly port `465`; otherwise `false`. |
+| `SMTP_REQUIRE_TLS` | No | Defaults to `true` in production. Keep it enabled for STARTTLS on port `587`; plaintext is accepted only for a local test relay. |
 | `SMTP_USER` | If required | SMTP username. |
 | `SMTP_PASS` | If required | SMTP password or app password. |
 | `SMTP_FROM` | For recovery | Sender, for example `MindLarp <no-reply@mindlarp.ai>`. |
@@ -113,7 +120,7 @@ Apply migrations whenever the schema changes:
 npm run db:migrate
 ```
 
-The Next.js server also verifies and applies pending migrations during storage initialization. For a controlled production deployment, run `npm run db:migrate` before starting new application instances.
+Development storage initialization applies pending migrations automatically. Production web processes do not run DDL: they verify that every SQL migration is already present and become unready if the schema is behind. Run `npm run db:migrate` as a release job through `DIRECT_URL` before starting new application instances, and use separate runtime and migration database roles where possible.
 
 Row-level security is enabled on every application table and no anonymous or authenticated browser policies are created. This is deliberate: browsers do not connect directly to PostgreSQL. The Next.js server uses database credentials that can bypass RLS. Add narrowly scoped policies only if a future client integration needs them.
 
@@ -159,7 +166,9 @@ MINDLARP_UPSTREAM_URL=https://provider.example/v1
 MINDLARP_UPSTREAM_KEY=your-provider-key
 ```
 
-The server proxies requests to `POST https://provider.example/v1/chat/completions`. Available identifiers are `MindLarp-Sol-1-Plus` and `MindLarp-Sol-1-Max`; configure matching aliases in the upstream gateway if necessary.
+The server proxies requests to `POST https://provider.example/v1/chat/completions`. Available identifiers are `MindLarp-Sol-1-Plus` and `MindLarp-Sol-1-Max`; configure matching aliases in the upstream gateway if necessary. Non-stream responses are capped at 1 MiB, chat answers are capped at 100,000 characters, and omitted `max_tokens` values default to `4096`.
+
+Production inference is fail-closed. Requests require an `active` or `trialing` Stripe subscription unless `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION=true` is explicitly configured for a trusted non-billing deployment. `INFERENCE_DAILY_REQUEST_LIMIT` is required and is enforced once per account across API keys and browser chat; API keys are additionally capped at 10 active keys and 120 inference requests per account per minute. A quota check is a launch safeguard, not a replacement for provider-side budgets and metered billing.
 
 ```bash
 curl http://localhost:5173/v1/chat/completions \
@@ -177,7 +186,7 @@ http://localhost:5173/auth/google/callback
 http://localhost:5173/auth/github/callback
 ```
 
-For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. OAuth routes return `503` while a provider is unconfigured. Identities are linked by provider ID; a verified provider identity can also be linked to an existing account with the same email. Review this policy before a public multi-tenant launch.
+For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. OAuth routes return `503` while a provider is unconfigured. Identities are linked only by provider ID. A matching verified email is not sufficient to attach an identity to an existing password account; the user must continue signing in with that account's original authentication method unless an explicit authenticated linking flow is added later.
 
 ## Stripe billing
 
@@ -192,7 +201,7 @@ For local forwarding:
 stripe listen --forward-to localhost:5173/webhooks/stripe
 ```
 
-Checkout and Customer Portal are available from `/console/billing`. The integration stores subscription state but does not yet implement metered token invoicing, spending limits, or entitlement enforcement.
+Checkout and Customer Portal are available from `/console/billing`. Webhook signatures, expected price IDs, customer/subscription binding, duplicate event IDs, and out-of-order event timestamps are enforced. `active` and `trialing` subscriptions authorize inference together with the account daily quota. Metered token invoicing, provider spending limits, and entitlement enforcement for future non-inference features still require explicit implementation.
 
 ## SMTP password recovery
 
@@ -205,16 +214,18 @@ SMTP_PASS=your-smtp-password
 SMTP_FROM="MindLarp <no-reply@example.com>"
 ```
 
-For port `587`, normally use `SMTP_SECURE=false` and STARTTLS. Reset links expire after 30 minutes, are stored only as hashes, and cannot be reused. A successful reset signs out all existing sessions. Without `SMTP_HOST`, recovery reports its configuration state rather than claiming an email was sent.
+For port `587`, use `SMTP_SECURE=false` with STARTTLS and keep `SMTP_REQUIRE_TLS=true`. Production rejects plaintext SMTP outside a local test relay. Reset links expire after 30 minutes, are stored only as hashes, are consumed atomically, and cannot be reused; concurrent submissions of the same token can succeed only once. A successful reset signs out all existing sessions. Without `SMTP_HOST`, recovery reports its configuration state rather than claiming an email was sent.
 
 ## Verification
 
 ```bash
 npm test
 npm run check
+npm run check:production
+npm audit --omit=dev
 ```
 
-The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, account setup, registration/login, sessions, CSRF, API keys, mock inference and streaming, chat, OAuth redirects, signed Stripe webhooks, and mock SMTP recovery.
+Set a valid production configuration before `check:production`. The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, asset alias isolation, runtime sitemap URLs, account setup, registration/login, sessions, CSRF, API key caps, entitlement and quota checks, mock inference and streaming, bounded upstream failures, chat, OAuth redirects and account-link safety, signed/idempotent Stripe webhooks, per-account login limits, concurrent reset-token consumption, and mock SMTP recovery.
 
 To run the real PostgreSQL integration test against local Docker:
 
@@ -230,7 +241,7 @@ This test creates a uniquely named temporary database, applies migrations, verif
 app/                     Next.js pages, form actions, and API routes
 components/              React browser effects and reusable controls
 db/migrations/           Versioned PostgreSQL / Supabase-compatible schema
-scripts/                 Migration and JSON import commands
+scripts/                 Migration, production validation, and JSON import commands
 src/server/database.js   PostgreSQL pool and migration runner
 src/postgres-store.js    Transactional normalized PostgreSQL store
 src/server/store.js      PostgreSQL selection and JSON fallback
@@ -244,13 +255,14 @@ test/                    HTTP and real PostgreSQL integration tests
 
 ## Production checklist
 
-- Run PostgreSQL migrations and configure managed backups before launch.
-- Serve through HTTPS and set `NODE_ENV=production` and the correct `PUBLIC_URL`.
-- Keep secrets in a deployment secret manager; never commit `.env`.
-- Put Node.js behind a reverse proxy with request limits and appropriate timeouts.
-- Add distributed rate limiting for login, registration, recovery, chat, and inference.
-- Decide whether public registration is allowed and add invitation/workspace authorization controls if needed.
-- Configure model aliases, provider limits, usage metering, and Stripe entitlements.
-- Define chat retention and deletion policies and review the placeholder legal page.
+- Run `npm run db:migrate` as a release job, then `npm run check:production` with the real environment. Configure managed backups/PITR and verify a restore.
+- Serve through HTTPS and set `NODE_ENV=production` and the correct origin-only `PUBLIC_URL`.
+- Keep secrets in a deployment secret manager; never commit `.env` or publish a `.next/standalone` directory built on a workstation.
+- Put Node.js behind a reverse proxy with request limits and timeouts. The proxy must terminate public access to direct Node/PostgreSQL ports and overwrite client-supplied `X-Real-IP`/`X-Forwarded-For` before `TRUST_PROXY=true` is enabled.
+- Add a shared Redis/PostgreSQL-backed rate limiter before horizontal or high-risk public launch. The built-in limiter is process-local and is only a single-instance safeguard.
+- Treat PostgreSQL scaling as a launch gate: the current store refreshes and serializes broad application state. Run a realistic load test and keep one application replica until the data path is refactored into targeted SQL queries.
+- Create the owner through `/setup` before opening traffic. Decide whether public registration is allowed and add invitation/workspace authorization controls for a closed launch.
+- Configure model aliases, provider-side budgets/quotas, `INFERENCE_DAILY_REQUEST_LIMIT`, and either Stripe subscriptions or an explicit non-billing inference override. Do not present quota accounting as metered invoicing.
+- Define chat/usage retention and deletion policies and review the placeholder legal page.
 - Review all model, price, status, trusted-company, and social-link content before launch.
-- Test OAuth callbacks and Stripe webhooks on the public domain before accepting users.
+- Test OAuth callbacks, SMTP delivery, live-mode Stripe webhooks, provider errors, and Docker/container smoke checks on the public domain before accepting users.

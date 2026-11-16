@@ -9,8 +9,6 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
-import { createPasswordUser, findOrCreateOAuthUser } from '../src/server/auth.js';
-import { getStore } from '../src/server/store.js';
 
 const password = 'a-very-good-password';
 const root = resolve(import.meta.dirname, '..');
@@ -625,34 +623,40 @@ test('SMTP recovery uses a hashed one-time token, revokes sessions, and permits 
 });
 
 test('OAuth never attaches a verified identity to an existing password account by email alone', async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), 'mindlarp-oauth-test-'));
-  const previousDataFile = process.env.DATA_FILE;
-  const previousDatabaseUrl = process.env.DATABASE_URL;
-  process.env.DATA_FILE = join(directory, 'store.json');
-  process.env.DATABASE_URL = '';
-  delete globalThis.__mindLarpStorePromise;
-  t.after(async () => {
-    delete globalThis.__mindLarpStorePromise;
-    if (previousDataFile === undefined) delete process.env.DATA_FILE;
-    else process.env.DATA_FILE = previousDataFile;
-    if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
-    else process.env.DATABASE_URL = previousDatabaseUrl;
-    await rm(directory, { recursive: true, force: true });
+  const mockModule = new URL('./mock-oauth.js', import.meta.url).href;
+  const { origin, readData } = await startApp(t, {
+    env: {
+      GOOGLE_CLIENT_ID: 'client-id',
+      GOOGLE_CLIENT_SECRET: 'secret',
+      NODE_OPTIONS: `--import ${mockModule}`,
+    },
   });
+  let response = await post(origin, '/actions/auth/setup', { displayName: 'Victim', email: 'victim@example.com', password, confirmPassword: password });
+  assert.equal(response.status, 303);
 
-  const user = await createPasswordUser({ displayName: 'Victim', email: 'victim@example.com', password, onlyIfEmpty: true });
-  await assert.rejects(findOrCreateOAuthUser({ provider: 'google', providerId: 'google-victim', email: 'victim@example.com', displayName: 'Victim' }), /original authentication method/);
-  let store = await getStore();
-  assert.equal(store.data.users.length, 1);
-  assert.equal(store.data.users[0].identities.length, 0);
-  assert.equal(store.data.users[0].id, user.id);
+  async function completeGoogle(code) {
+    const begin = await fetch(`${origin}/auth/google`, { redirect: 'manual' });
+    assert.equal(begin.status, 302);
+    const state = new URL(begin.headers.get('location')).searchParams.get('state');
+    const cookie = begin.headers.get('set-cookie').split(';')[0];
+    return fetch(`${origin}/auth/google/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual',
+    });
+  }
 
-  const oauthUser = await findOrCreateOAuthUser({ provider: 'github', providerId: '12345', email: 'oauth@example.com', displayName: 'OAuth User' });
-  const returningUser = await findOrCreateOAuthUser({ provider: 'github', providerId: '12345', email: 'oauth@example.com', displayName: 'OAuth User' });
-  store = await getStore();
-  assert.equal(returningUser.id, oauthUser.id);
-  assert.equal(store.data.users.length, 2);
-  assert.equal(oauthUser.identities.length, 1);
+  response = await completeGoogle('victim');
+  assert.match(response.headers.get('location'), /\/login\?error=oauth$/);
+  let data = await readData();
+  assert.equal(data.users.length, 1);
+  assert.equal(data.users[0].identities.length, 0);
+
+  response = await completeGoogle('oauth');
+  assert.equal(response.headers.get('location'), '/console');
+  assert.match(response.headers.get('set-cookie'), /ml_session=/);
+  data = await readData();
+  assert.equal(data.users.length, 2);
+  assert.deepEqual(data.users[1].identities, [{ provider: 'google', providerId: 'google-oauth' }]);
 });
 
 test('API key creation is capped at ten active keys per account', async (t) => {
@@ -662,9 +666,9 @@ test('API key creation is capped at ten active keys per account', async (t) => {
     const { response } = await createKey(origin, cookie, `Key ${index + 1}`);
     assert.equal(response.status, 201, `key ${index + 1}`);
   }
-  const { response } = await createKey(origin, cookie, 'One key too many');
+  const { response, html } = await createKey(origin, cookie, 'One key too many');
   assert.equal(response.status, 400);
-  assert.match(await response.text(), /at most 10 active API keys/);
+  assert.match(html, /at most 10 active API keys/);
   assert.equal((await readData()).keys.length, 10);
 });
 
