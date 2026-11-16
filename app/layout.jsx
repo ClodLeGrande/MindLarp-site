@@ -10,7 +10,7 @@ export const metadata = {
   manifest: '/manifest.webmanifest',
 };
 
-export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#07070d' };
+export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#0d0d0d' };
 
 export default function RootLayout({ children }) {
   return <html lang="en"><body>{children}<BrowserEffects /></body></html>;

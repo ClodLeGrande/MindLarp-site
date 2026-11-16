@@ -4,7 +4,7 @@
   "description": "The open intelligence model family by GonidonCloud",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#07070d",
-  "theme_color": "#07070d",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
   "icons": [{ "src": "/assets/logo.png", "sizes": "434x298", "type": "image/png" }]
 }
