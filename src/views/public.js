@@ -3,10 +3,10 @@ import { escapeHtml, icon } from '../html.js';
 import { publicLayout } from './layout.jsx';
 import { trustedStrip } from './trusted.js';
 
-function modelArtwork(model, large = false) {
-  return `<div class="model-artwork ${model.accent} ${large ? 'large' : ''}" aria-hidden="true">
-    <div class="art-grid"></div><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-core"><span>${model.index}</span></div>
-    <span class="art-label">${model.id}</span>
+function modelArtwork(large = false) {
+  return `<div class="model-artwork ${large ? 'large' : ''}" aria-hidden="true">
+    <div class="art-grid"></div><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-core"><span>M</span></div>
+    <span class="art-label">MINDLARP / SOL 1</span>
   </div>`;
 }
 
@@ -23,7 +23,7 @@ export function homePage() {
     <div class="hero-orbit" aria-hidden="true"><span></span><span></span><span></span><b>M</b></div>
     <div class="hero-terminal-status"><span class="status-dot"></span> MINDLARP / SOL 1 SERIES <span>SYSTEM ONLINE</span></div>
     <h1 data-hero-title>Intelligence.<br><span>In your element.</span></h1>
-    <p data-hero-copy>Meet the MindLarp family by GonidonCloud. Two models for fast, focused work and deeper reasoning — in chat, in your code, and in your product.</p>
+    <p data-hero-copy>Meet the MindLarp family by ClodLeGrande. Two models for fast, focused work and deeper reasoning — in chat, in your code, and in your product.</p>
     <div class="button-row hero-actions"><a href="/chat" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/docs/getting-started" class="button button-ghost">Build with the API <span>↗</span></a></div>
     <div class="hero-capabilities"><span>OPENAI COMPATIBLE</span><span>512K CONTEXT</span><span>TOOL CALLING</span></div>
     <div class="hero-terminal" data-hero-terminal>
@@ -56,7 +56,7 @@ export function modelsPage() {
 }
 
 export function modelPage(model) {
-  const content = `<section class="model-detail-hero"><div><a href="/models" class="back-link">← All models</a><span class="section-kicker">${model.eyebrow}</span><h1>${model.name}<span class="accent-dot">.</span></h1><p>${model.longDescription}</p><div class="button-row"><a href="/console/keys" class="button button-primary">Use ${model.shortName} ${icon('arrow')}</a><a href="/docs/api-reference" class="button button-ghost">API reference</a></div></div>${modelArtwork(model, true)}</section>
+  const content = `<section class="model-detail-hero"><div><a href="/models" class="back-link">← All models</a><span class="section-kicker">${model.eyebrow}</span><h1>${model.name}<span class="accent-dot">.</span></h1><p>${model.longDescription}</p><div class="button-row"><a href="/console/keys" class="button button-primary">Use ${model.shortName} ${icon('arrow')}</a><a href="/docs/api-reference" class="button button-ghost">API reference</a></div></div>${modelArtwork(true)}</section>
   <section class="model-specs"><div><span>CONTEXT WINDOW</span><strong>${model.context}</strong><small>tokens</small></div><div><span>INPUT</span><strong>${model.inputPrice}</strong><small>per 1M tokens</small></div><div><span>OUTPUT</span><strong>${model.outputPrice}</strong><small>per 1M tokens</small></div><div><span>LATENCY</span><strong class="spec-text">${model.latency}</strong><small>response profile</small></div></section>
   <section class="section"><div class="section-heading"><div><span class="section-kicker">CAPABILITIES</span><h2>Made for the whole task.</h2></div></div><div class="capability-grid">${model.capabilities.map((capability, i) => `<div><span>0${i + 1}</span><h3>${capability}</h3><p>${['Generate clear, useful text that stays aligned with your instructions and tone.', 'Connect models to your tools with structured, reliable function calls.', 'Get valid structured output that fits naturally into your application.', 'Deliver answers token by token for fast, responsive experiences.'][i]}</p></div>`).join('')}</div></section>
   <section class="section"><div class="section-heading"><div><span class="section-kicker">MAKE A REQUEST</span><h2>Meet ${model.shortName} in code.</h2></div></div><div class="code-window"><div class="code-toolbar"><span>request.sh</span><button class="copy-button js-copy" data-copy-target="model-code" type="button">${icon('copy')} Copy</button></div><pre id="model-code"><code>curl https://api.mindlarp.ai/v1/chat/completions \\
@@ -71,7 +71,7 @@ export function modelPage(model) {
 }
 
 export function pricingPage() {
-  const content = `<section class="page-hero"><span class="section-kicker">SIMPLE, USAGE-BASED PRICING</span><h1>Pay for thinking.<br>Nothing else<span class="accent-dot">.</span></h1><p>Start free, pay for the tokens you use, and manage an optional subscription securely with Stripe.</p></section><section class="pricing-grid">${models.map((model) => `<article class="pricing-card ${model.slug === 'sol-1-plus' ? 'featured' : ''}"><span class="micro-label">${model.eyebrow}</span><h2>${model.shortName}</h2><p>${model.description}</p><div class="price-line"><span>Input</span><strong>${model.inputPrice}<small> / 1M tokens</small></strong></div><div class="price-line"><span>Output</span><strong>${model.outputPrice}<small> / 1M tokens</small></strong></div><a href="/console/keys" class="button ${model.slug === 'sol-1-plus' ? 'button-primary' : 'button-ghost'}">Build with ${model.shortName} ${icon('arrow')}</a></article>`).join('')}</section><section class="section faq-section"><span class="section-kicker">QUESTIONS, ANSWERED</span><h2>The useful details.</h2><details><summary>How does token billing work? ${icon('plus')}</summary><p>You are billed separately for input and output tokens. Cached input, when available, appears as a separate line item in usage.</p></details><details><summary>Can I set spending limits? ${icon('plus')}</summary><p>Workspace-level usage is visible in the console. Key expiration and scoped permissions help limit access.</p></details><details><summary>Is there a free tier? ${icon('plus')}</summary><p>New workspaces can explore the platform with trial capacity. Production usage is billed according to the rates above.</p></details></section>`;
+  const content = `<section class="page-hero"><span class="section-kicker">LAUNCH PRICING</span><h1>Free while<br>we launch<span class="accent-dot">.</span></h1><p>Both models are currently free: $0 for input and output tokens. Usage is still tracked in the console, and paid plans can be enabled later with Stripe.</p></section><section class="pricing-grid">${models.map((model) => `<article class="pricing-card ${model.slug === 'sol-1-plus' ? 'featured' : ''}"><span class="micro-label">${model.eyebrow}</span><h2>${model.shortName}</h2><p>${model.description}</p><div class="price-line"><span>Input</span><strong>${model.inputPrice}<small> / 1M tokens</small></strong></div><div class="price-line"><span>Output</span><strong>${model.outputPrice}<small> / 1M tokens</small></strong></div><a href="/console/keys" class="button ${model.slug === 'sol-1-plus' ? 'button-primary' : 'button-ghost'}">Build with ${model.shortName} ${icon('arrow')}</a></article>`).join('')}</section><section class="section faq-section"><span class="section-kicker">QUESTIONS, ANSWERED</span><h2>The useful details.</h2><details><summary>How does token billing work? ${icon('plus')}</summary><p>You are billed separately for input and output tokens. Cached input, when available, appears as a separate line item in usage.</p></details><details><summary>Can I set spending limits? ${icon('plus')}</summary><p>Workspace-level usage is visible in the console. Key expiration and scoped permissions help limit access.</p></details><details><summary>Is there a free tier? ${icon('plus')}</summary><p>All models are free during the launch period. When paid rates are introduced, they will be published here before billing begins.</p></details></section>`;
   return publicLayout({ title: 'Pricing', path: '/pricing', content });
 }
 
