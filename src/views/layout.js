@@ -1,5 +1,4 @@
 import { escapeHtml, icon } from '../html.js';
-import { openWebuiUrl } from '../server/config.js';
 
 const navigation = [
   ['Models', '/models'],
@@ -90,7 +89,7 @@ export function publicLayout({ title, description = 'A family of AI models for c
 export function consoleLayout({ title, path, content, user, csrf, nonce = '' }) {
   const items = [
     ['/console', 'Overview', 'home'],
-    [openWebuiUrl(), 'Chat', 'arrow'],
+    ['/chat', 'Chat', 'arrow'],
     ['/console/keys', 'API keys', 'key'],
     ['/console/usage', 'Usage', 'chart'],
     ['/console/billing', 'Billing', 'chart'],
