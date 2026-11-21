@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { publicLayout } from '@/src/views/layout.jsx';
-import { escapeHtml } from '@/src/html.js';
+import { brandIcon, escapeHtml } from '@/src/html.js';
 import { getCurrentAuth } from '@/src/server/auth.js';
 import { getStore } from '@/src/server/store.js';
 
@@ -30,8 +30,8 @@ export default async function Page({ searchParams }) {
       <p>Continue securely with a connected account.</p>
       ${error ? `<div class="alert error" role="alert">${escapeHtml(error)}</div>` : ''}
       <div class="oauth-buttons">
-        <a class="oauth-button" href="/auth/google">Google</a>
-        <a class="oauth-button" href="/auth/github">GitHub</a>
+        <a class="oauth-button" href="/auth/google">${brandIcon('google')}Google</a>
+        <a class="oauth-button" href="/auth/github">${brandIcon('github')}GitHub</a>
       </div>
       <p class="auth-hint">Email and password sign-in are no longer available.</p>
     </div></div>

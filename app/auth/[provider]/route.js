@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { beginOAuth, oauthCookieName } from '@/src/oauth.js';
-import { escapeHtml } from '@/src/html.js';
+import { brandIcon, escapeHtml } from '@/src/html.js';
 import { htmlResponse } from '@/src/server/html.jsx';
 
 export async function GET(request, { params }) {
@@ -21,8 +21,8 @@ export async function GET(request, { params }) {
       <p>Continue securely with a connected account.</p>
       <div class="alert error" role="alert">${escapeHtml(error)}</div>
       <div class="oauth-buttons">
-        <a class="oauth-button" href="/auth/google">Google</a>
-        <a class="oauth-button" href="/auth/github">GitHub</a>
+        <a class="oauth-button" href="/auth/google">${brandIcon('google')}Google</a>
+        <a class="oauth-button" href="/auth/github">${brandIcon('github')}GitHub</a>
       </div>
       <p class="auth-hint">Email and password sign-in are no longer available.</p>
     </div></div>

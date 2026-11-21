@@ -384,11 +384,19 @@ test('email/password login and registration remain disabled while logout works',
     redirect: 'manual',
   })).headers.get('location'), '/login');
   assert.equal((await readData()).users.length, 1);
+
+  const loginHtml = await (await fetch(`${origin}/login`)).text();
+  assert.match(loginHtml, /href="\/auth\/google"><svg viewBox="0 0 48 48"/);
+  assert.match(loginHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);
 });
 
 test('Google and GitHub OAuth report missing configuration or redirect with protected state', async (t) => {
   const unconfigured = await startApp(t);
-  assert.equal((await fetch(`${unconfigured.origin}/auth/google`)).status, 503);
+  const unconfiguredResponse = await fetch(`${unconfigured.origin}/auth/google`);
+  assert.equal(unconfiguredResponse.status, 503);
+  const unconfiguredHtml = await unconfiguredResponse.text();
+  assert.match(unconfiguredHtml, /href="\/auth\/google"><svg viewBox="0 0 48 48"/);
+  assert.match(unconfiguredHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);
   const configured = await startApp(t, { env: { GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'secret', GITHUB_CLIENT_ID: 'github-id', GITHUB_CLIENT_SECRET: 'github-secret', PUBLIC_URL: 'https://mindlarp.test' } });
   for (const provider of ['google', 'github']) {
     const response = await fetch(`${configured.origin}/auth/${provider}`, { redirect: 'manual' });
