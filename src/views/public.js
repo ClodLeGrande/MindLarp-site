@@ -1,5 +1,7 @@
-import { models } from '../content.js';
+import { models, plans } from '../content.js';
 import { escapeHtml, icon } from '../html.js';
+import { planPaymentLink } from '../server/plans.js';
+import { chatUrl } from '../server/config.js';
 import { publicLayout } from './layout.jsx';
 import { trustedStrip } from './trusted.js';
 
@@ -24,7 +26,7 @@ export function homePage() {
     <div class="hero-terminal-status"><span class="status-dot"></span> MINDLARP / LARP 1 SERIES <span>COMING SOON</span></div>
     <h1 data-hero-title>Intelligence.<br><span>In your element.</span></h1>
     <p data-hero-copy>Meet the MindLarp family by ClodLeGrande. Two models for fast, focused work and deeper reasoning — in chat, in your code, and in your product. <strong>Both models are still in development and have not been released yet.</strong> Chat and API responses go live at launch.</p>
-    <div class="button-row hero-actions"><a href="/chat" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/docs/getting-started" class="button button-ghost">Build with the API <span>↗</span></a></div>
+    <div class="button-row hero-actions"><a href="${escapeHtml(chatUrl() || '/console')}" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/docs/getting-started" class="button button-ghost">Build with the API <span>↗</span></a></div>
     <div class="hero-capabilities"><span>OPENAI COMPATIBLE</span><span>1M CONTEXT</span><span>TOOL CALLING</span></div>
     <div class="hero-terminal" data-hero-terminal>
       <div class="terminal-bar"><div><i></i><i></i><i></i></div><span>mindlarp — session 001</span><span>UTF-8 / CONNECTED</span></div>
@@ -45,7 +47,7 @@ export function homePage() {
       "content": "Make the complex clear."
     }]
   }'</span></code></pre><div class="code-result"><span>COMING SOON</span><span>RESPONSES AT LAUNCH <i></i></span></div></div></div></section>
-  <section class="home-console-cta" data-reveal><span class="section-kicker">[ 04 ] YOUR NEXT SESSION</span><h2>Bring the question.<br><span>MindLarp is coming soon.</span></h2><p>Larp 1 and Larp 1 Code have not been released yet. Create your account and API keys today — chat and API responses go live at launch.</p><div class="button-row"><a href="/chat" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/console" class="button button-ghost">Open console</a></div><div class="console-cta-word" aria-hidden="true">M_</div></section>`;
+  <section class="home-console-cta" data-reveal><span class="section-kicker">[ 04 ] YOUR NEXT SESSION</span><h2>Bring the question.<br><span>MindLarp is coming soon.</span></h2><p>Larp 1 and Larp 1 Code have not been released yet. Create your account and API keys today — chat and API responses go live at launch.</p><div class="button-row"><a href="${escapeHtml(chatUrl() || '/console')}" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/console" class="button button-ghost">Open console</a></div><div class="console-cta-word" aria-hidden="true">M_</div></section>`;
   return publicLayout({ title: 'The open intelligence model family', description: 'Meet MindLarp Larp 1 and Larp 1 Code: two AI models for everyday work and deeper reasoning. Coming soon — start a chat or build with one simple API.', path: '/', content, bodyClass: 'home-page' });
 }
 
@@ -71,7 +73,14 @@ export function modelPage(model) {
 }
 
 export function pricingPage() {
-  const content = `<section class="page-hero"><span class="section-kicker">LAUNCH PRICING</span><h1>Free while<br>we launch<span class="accent-dot">.</span></h1><p>Both models are coming soon. At launch they will be free: $0 for input and output tokens. Usage will be tracked in the console, and paid plans can be enabled later with Stripe.</p></section><section class="pricing-grid">${models.map((model) => `<article class="pricing-card ${model.slug === 'larp-1' ? 'featured' : ''}"><span class="micro-label">${model.eyebrow}</span><span class="release-tag">${model.status.toUpperCase()}</span><h2>${model.shortName}</h2><p>${model.description}</p><div class="price-line"><span>Input</span><strong>${model.inputPrice}<small> / 1M tokens</small></strong></div><div class="price-line"><span>Output</span><strong>${model.outputPrice}<small> / 1M tokens</small></strong></div><a href="/console/keys" class="button ${model.slug === 'larp-1' ? 'button-primary' : 'button-ghost'}">Build with ${model.shortName} ${icon('arrow')}</a></article>`).join('')}</section><section class="section faq-section"><span class="section-kicker">QUESTIONS, ANSWERED</span><h2>The useful details.</h2><details><summary>How does token billing work? ${icon('plus')}</summary><p>You are billed separately for input and output tokens. Cached input, when available, appears as a separate line item in usage.</p></details><details><summary>Can I set spending limits? ${icon('plus')}</summary><p>Workspace-level usage is visible in the console. Key expiration and scoped permissions help limit access.</p></details><details><summary>Is there a free tier? ${icon('plus')}</summary><p>All models are free during the launch period. When paid rates are introduced, they will be published here before billing begins.</p></details></section>`;
+  const planCards = plans.map((plan) => {
+    const link = planPaymentLink(plan);
+    const action = link
+      ? `<a class="button ${plan.featured ? 'button-primary' : 'button-ghost'}" href="${escapeHtml(link)}">Subscribe to ${plan.name} ${icon('arrow')}</a>`
+      : '<button class="button button-ghost" type="button" disabled>Payment link coming soon</button>';
+    return `<article class="plan-card ${plan.featured ? 'featured' : ''}">${plan.featured ? '<span class="plan-badge">MOST POPULAR</span>' : ''}<span class="micro-label">${plan.tagline}</span><h3>${plan.name}</h3><div class="plan-price">$${plan.price}<small> / month</small></div><ul class="plan-features">${plan.features.map((feature) => `<li>${feature}</li>`).join('')}</ul>${action}</article>`;
+  }).join('');
+  const content = `<section class="page-hero"><span class="section-kicker">LAUNCH PRICING</span><h1>Free while<br>we launch<span class="accent-dot">.</span></h1><p>Both models are coming soon. At launch they will be free: $0 for input and output tokens. Usage is tracked in the console. Optional Pro, Plus, and Studio subscriptions raise your daily limits and are billed monthly through Stripe.</p></section><section class="pricing-grid">${models.map((model) => `<article class="pricing-card ${model.slug === 'larp-1' ? 'featured' : ''}"><span class="micro-label">${model.eyebrow}</span><span class="release-tag">${model.status.toUpperCase()}</span><h2>${model.shortName}</h2><p>${model.description}</p><div class="price-line"><span>Input</span><strong>${model.inputPrice}<small> / 1M tokens</small></strong></div><div class="price-line"><span>Output</span><strong>${model.outputPrice}<small> / 1M tokens</small></strong></div><a href="/console/keys" class="button ${model.slug === 'larp-1' ? 'button-primary' : 'button-ghost'}">Build with ${model.shortName} ${icon('arrow')}</a></article>`).join('')}</section><section class="section plans-section"><span class="section-kicker">SUBSCRIPTION PLANS</span><h2>Pick your pace.</h2><p class="plans-intro">Subscribe securely with Stripe. Manage your payment details or cancel anytime from Console → Billing.</p><div class="plans-grid">${planCards}</div></section><section class="section faq-section"><span class="section-kicker">QUESTIONS, ANSWERED</span><h2>The useful details.</h2><details><summary>How does token billing work? ${icon('plus')}</summary><p>During the launch period input and output tokens are free. Subscriptions are a flat monthly price; your daily request limit depends on the plan.</p></details><details><summary>Can I set spending limits? ${icon('plus')}</summary><p>Workspace-level usage is visible in the console. Key expiration and scoped permissions help limit access.</p></details><details><summary>Is there a free tier? ${icon('plus')}</summary><p>Yes. Both models are free during the launch period. Pro, Plus, and Studio are optional subscriptions with higher daily request limits.</p></details><details><summary>How do I manage or cancel a subscription? ${icon('plus')}</summary><p>Open Console → Billing and choose Manage billing to enter the Stripe customer portal. Cards, invoices, and cancellation are handled by Stripe.</p></details></section>`;
   return publicLayout({ title: 'Pricing', path: '/pricing', content });
 }
 

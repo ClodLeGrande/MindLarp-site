@@ -58,6 +58,18 @@ test('production inference requires HTTPS, a bounded daily quota, and an entitle
   }), []);
 });
 
+test('plan payment links must be HTTPS and plan limits must be bounded integers', () => {
+  assert.match(validationErrors({ STRIPE_PAYMENT_LINK_PRO: 'http://buy.stripe.com/test' }).join('\n'), /STRIPE_PAYMENT_LINK_PRO must be an absolute HTTPS URL/);
+  assert.match(validationErrors({ STRIPE_PAYMENT_LINK_PLUS: 'not-a-url' }).join('\n'), /STRIPE_PAYMENT_LINK_PLUS must be an absolute HTTPS URL/);
+  assert.match(validationErrors({ INFERENCE_DAILY_REQUEST_LIMIT_STUDIO: '0' }).join('\n'), /INFERENCE_DAILY_REQUEST_LIMIT_STUDIO must be an integer between 1 and 100000/);
+  assert.deepEqual(validationErrors({
+    STRIPE_PAYMENT_LINK_PRO: 'https://buy.stripe.com/test_pro',
+    STRIPE_PAYMENT_LINK_PLUS: 'https://buy.stripe.com/test_plus',
+    STRIPE_PAYMENT_LINK_STUDIO: 'https://buy.stripe.com/test_studio',
+    INFERENCE_DAILY_REQUEST_LIMIT_PRO: '500',
+  }), []);
+});
+
 test('plaintext SMTP is allowed only for a local test relay', () => {
   assert.match(validationErrors({ SMTP_HOST: 'smtp.example.com', SMTP_REQUIRE_TLS: 'false' }).join('\n'), /only for a local test relay/);
   assert.deepEqual(validationErrors({ SMTP_HOST: 'smtp.example.com', SMTP_REQUIRE_TLS: 'true' }), []);

@@ -1,13 +1,13 @@
 # MindLarp
 
-The website, documentation, chat, and developer console for the MindLarp model family by ClodLeGrande. Built with Next.js 16, React 19, Node.js, PostgreSQL, GSAP, and Lenis. The dark amber, terminal-inspired interface is based on the official Hermes Agent visual language, adapted for a model platform.
+The website, documentation, and developer console for the MindLarp model family by ClodLeGrande. Built with Next.js 16, React 19, Node.js, PostgreSQL, GSAP, and Lenis. The dark amber, terminal-inspired interface is based on the official Hermes Agent visual language, adapted for a model platform.
 
 ## Features
 
 - Responsive public website with model pages, pricing, changelog, status, and legal pages.
 - English documentation and an OpenAI-compatible API reference.
 - SEO metadata, Open Graph, JSON-LD, `robots.txt`, sitemap, and web manifest.
-- Built-in web chat connected to a configurable OpenAI-compatible inference service.
+- OpenAI-compatible inference API; chat buttons link to your own external interface via `CHAT_URL` (the built-in chat page was removed).
 - OAuth-only sign-in with Google and GitHub (PKCE where supported); email/password login, registration, and password recovery are disabled.
 - Console with scoped API keys, usage reporting, profile settings, and billing.
 - Stripe Checkout, Customer Portal, and signed subscription webhooks.
@@ -15,7 +15,7 @@ The website, documentation, chat, and developer console for the MindLarp model f
 - Local Supabase PostgreSQL-compatible Docker database and a JSON migration path.
 - Atomic JSON storage remains available as a single-process development fallback.
 
-MindLarp does not include a model runtime. Chat and inference return a clear `503` until an upstream service is configured.
+MindLarp does not include a model runtime. Inference returns a clear `503` until an upstream service is configured.
 
 ## Requirements
 
@@ -41,7 +41,7 @@ On a new installation, visit `/setup` and create the owner account. After that:
 
 - `/login` signs users in with Google or GitHub OAuth (the only sign-in method).
 - `/register`, `/forgot-password`, and `/reset-password` redirect to `/login`; the password endpoints return `410`.
-- `/chat` opens the built-in model chat.
+- Chat buttons (console sidebar and public CTAs) link to your external interface when `CHAT_URL` is set; otherwise they lead to the console.
 - `/console` manages keys, usage, billing, and settings.
 - `/docs` contains the developer documentation.
 
@@ -73,6 +73,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `HOST` | No | Listen address; defaults to `0.0.0.0`. |
 | `PORT` | No | HTTP port; development default is `5173`. |
 | `PUBLIC_URL` | Production | Public origin without a trailing slash. Used for OAuth callbacks, reset links, canonical URLs, and Stripe redirects. |
+| `CHAT_URL` | No | Absolute HTTP(S) URL of your external chat interface. When set, the console sidebar shows a Chat link to it and public “Start chat” buttons point there; otherwise those buttons lead to the console. |
 | `DATABASE_URL` | For PostgreSQL | Application PostgreSQL connection. When set, it takes precedence over JSON storage. Use a pooler for hosted Supabase. |
 | `DIRECT_URL` | Recommended | Direct PostgreSQL connection used by migration and import commands. Falls back to `DATABASE_URL`. |
 | `DATABASE_POOL_SIZE` | No | Maximum PostgreSQL connections per Node.js process; defaults to `10`. Multiply it by the replica count when sizing PostgreSQL. |
@@ -88,7 +89,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `MINDLARP_UPSTREAM_URL` | For inference | OpenAI-compatible base URL, for example `https://provider.example/v1`. External production endpoints must use HTTPS. |
 | `MINDLARP_UPSTREAM_KEY` | If required | Bearer token sent to the inference provider. |
 | `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION` | No | Explicit development/private-deployment bypass for subscription checks. In production, either leave this unset and configure Stripe or set it deliberately for a trusted non-billing deployment. |
-| `INFERENCE_DAILY_REQUEST_LIMIT` | For production inference | Positive account-level daily request quota shared by API keys and chat; production validation requires it whenever inference is enabled. |
+| `INFERENCE_DAILY_REQUEST_LIMIT` | For production inference | Positive account-level daily request quota shared across API keys; production validation requires it whenever inference is enabled. |
 | `ALLOW_HTTP_UPSTREAM` | No | Explicitly allow a non-local HTTP upstream only on a trusted private network. HTTPS is required otherwise. |
 | `GOOGLE_CLIENT_ID` | For Google login | Google OAuth client ID. |
 | `GOOGLE_CLIENT_SECRET` | For Google login | Google OAuth client secret. |
@@ -157,9 +158,9 @@ MINDLARP_UPSTREAM_URL=https://provider.example/v1
 MINDLARP_UPSTREAM_KEY=your-provider-key
 ```
 
-The server proxies requests to `POST https://provider.example/v1/chat/completions`. Available identifiers are `MindLarp-Larp-1` and `MindLarp-Larp-1-Code` (both coming soon); configure matching aliases in the upstream gateway if necessary. Non-stream responses are capped at 1 MiB, chat answers are capped at 100,000 characters, and omitted `max_tokens` values default to `4096`.
+The server proxies requests to `POST https://provider.example/v1/chat/completions`. Available identifiers are `MindLarp-Larp-1` and `MindLarp-Larp-1-Code` (both coming soon); configure matching aliases in the upstream gateway if necessary. Non-stream responses are capped at 1 MiB, and omitted `max_tokens` values default to `4096`.
 
-Production inference is fail-closed. Requests require an `active` or `trialing` Stripe subscription unless `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION=true` is explicitly configured for a trusted non-billing deployment. `INFERENCE_DAILY_REQUEST_LIMIT` is required and is enforced once per account across API keys and browser chat; API keys are additionally capped at 10 active keys and 120 inference requests per account per minute. A quota check is a launch safeguard, not a replacement for provider-side budgets and metered billing.
+Production inference is fail-closed. Requests require an `active` or `trialing` Stripe subscription unless `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION=true` is explicitly configured for a trusted non-billing deployment. `INFERENCE_DAILY_REQUEST_LIMIT` is required and is enforced once per account across API keys; API keys are additionally capped at 10 active keys and 120 inference requests per account per minute. A quota check is a launch safeguard, not a replacement for provider-side budgets and metered billing.
 
 ```bash
 curl http://localhost:5173/v1/chat/completions \
@@ -177,7 +178,7 @@ http://localhost:5173/auth/google/callback
 http://localhost:5173/auth/github/callback
 ```
 
-For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. OAuth routes return `503` while a provider is unconfigured. Identities are linked only by provider ID. A matching verified email is not sufficient to attach an identity to an existing password account; the user must continue signing in with that account's original authentication method unless an explicit authenticated linking flow is added later.
+For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. OAuth routes return `503` while a provider is unconfigured. Identities are matched by provider ID first. If no identity matches, a provider-verified email (Google `email_verified`, GitHub verified primary email) is linked to the existing account with that email, so owner accounts created via `/setup` can sign in with Google or GitHub. Unverified provider emails are rejected before any account lookup.
 
 ## Stripe billing
 
@@ -198,6 +199,40 @@ stripe listen --forward-to localhost:5173/webhooks/stripe
 
 Checkout and Customer Portal are available from `/console/billing`. Webhook signatures, expected price IDs, customer/subscription binding, duplicate event IDs, and out-of-order event timestamps are enforced. `active` and `trialing` subscriptions authorize inference together with the account daily quota. The webhook reads the billing period from both the legacy top-level `current_period_end` field and the subscription-item field used by API version `2025-03-31.basil` and newer. The CSP `form-action` directive allows `checkout.stripe.com` and `billing.stripe.com` so the 303 redirect from the billing forms is not blocked. Metered token invoicing, provider spending limits, and entitlement enforcement for future non-inference features still require explicit implementation.
 
+### Subscription plans and payment links
+
+The site ships three monthly plans, defined in `src/content.js`:
+
+| Plan | Price | Default daily request limit |
+| --- | --- | --- |
+| Pro | $19/mo | 500 |
+| Plus | $79/mo | 2,500 |
+| Studio | $199/mo | 10,000 |
+
+Plan cards render on `/pricing` and as buttons in Console → Billing. To activate them:
+
+1. In the Stripe Dashboard, create a Product and a recurring monthly Price for each plan ($19, $79, $199).
+2. For each Price, create a **Payment link** (Product catalog → Payment links → New). Configure the after-payment redirect to `https://your-domain.example/console/billing?checkout=success`.
+3. Paste the generated `https://buy.stripe.com/...` URLs into `.env`:
+
+```dotenv
+STRIPE_PAYMENT_LINK_PRO=https://buy.stripe.com/...
+STRIPE_PAYMENT_LINK_PLUS=https://buy.stripe.com/...
+STRIPE_PAYMENT_LINK_STUDIO=https://buy.stripe.com/...
+```
+
+4. Also set the Price IDs so webhook events activate the right plan and quota:
+
+```dotenv
+STRIPE_PRICE_ID_PRO=price_...
+STRIPE_PRICE_ID_PLUS=price_...
+STRIPE_PRICE_ID_STUDIO=price_...
+```
+
+5. Restart the app. Until a link is configured, its button renders disabled as “Payment link coming soon”; links must be absolute HTTPS URLs (`check:production` enforces this).
+
+How it works end to end: the customer pays on Stripe’s hosted page → Stripe sends `customer.subscription.*` events to `/webhooks/stripe` → the webhook matches the Price ID against `STRIPE_PRICE_ID` and the three plan Price IDs, stores the subscription, and marks it active → inference entitlement and the plan’s daily limit apply automatically. The Stripe customer ID from the webhook also enables the **Manage billing** portal button. Per-plan limits can be overridden with `INFERENCE_DAILY_REQUEST_LIMIT_PRO/PLUS/STUDIO`; accounts without a plan subscription keep the global `INFERENCE_DAILY_REQUEST_LIMIT`.
+
 ## SMTP password recovery (disabled)
 
 Sign-in is OAuth-only, so password recovery is disabled: `/forgot-password` and `/reset-password` redirect to `/login`, and the recovery endpoints return `410`. The SMTP configuration and production validation remain in place for a possible future re-enablement, but no email is sent today.
@@ -211,7 +246,7 @@ npm run check:production
 npm audit --omit=dev
 ```
 
-Set a valid production configuration before `check:production`. The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, asset alias isolation, runtime sitemap URLs, account setup, the OAuth-only sign-in policy, sessions and expired-session cleanup, CSRF, API key caps, entitlement and quota checks, mock inference and streaming, bounded upstream failures, chat, OAuth redirects and account-link safety, and signed/idempotent Stripe webhooks (including item-level billing periods).
+Set a valid production configuration before `check:production`. The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, asset alias isolation, runtime sitemap URLs, account setup, the OAuth-only sign-in policy, sessions and expired-session cleanup, CSRF, API key caps, entitlement and quota checks, mock inference and streaming, bounded upstream failures, external chat links, OAuth redirects and verified-email account linking, and signed/idempotent Stripe webhooks (including item-level billing periods).
 
 To run the real PostgreSQL integration test against local Docker:
 
@@ -249,6 +284,6 @@ test/                    HTTP and real PostgreSQL integration tests
 - Treat PostgreSQL scaling as a launch gate: the current store refreshes and serializes broad application state. Run a realistic load test and keep one application replica until the data path is refactored into targeted SQL queries.
 - Create the owner through `/setup` before opening traffic. Sign-in is OAuth-only; configure Google and GitHub credentials and decide whether open OAuth signup is acceptable or invitation controls are needed for a closed launch.
 - Configure model aliases, provider-side budgets/quotas, `INFERENCE_DAILY_REQUEST_LIMIT`, and either Stripe subscriptions or an explicit non-billing inference override. Do not present quota accounting as metered invoicing.
-- Define chat/usage retention and deletion policies and review the placeholder legal page.
+- Define usage retention and deletion policies and review the placeholder legal page.
 - Review all model, price, status, trusted-company, and social-link content before launch.
 - Test OAuth callbacks, live-mode Stripe checkout/portal/webhooks, provider errors, and Docker/container smoke checks on the public domain before accepting users.

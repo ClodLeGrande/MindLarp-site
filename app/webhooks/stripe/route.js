@@ -1,4 +1,5 @@
 import { getStripe } from '@/src/server/config.js';
+import { acceptedStripePriceIds } from '@/src/server/plans.js';
 import { json, readBody } from '@/src/server/responses.js';
 import { getStore } from '@/src/server/store.js';
 
@@ -19,7 +20,9 @@ export async function POST(request) {
   const object = event.data.object;
   const supported = ['checkout.session.completed', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted'].includes(event.type);
   if (!supported) return json({ received: true });
-  if (event.type.startsWith('customer.subscription.') && !object.items?.data?.some((item) => item.price?.id === process.env.STRIPE_PRICE_ID)) {
+  const priceIds = acceptedStripePriceIds();
+  const matchedItem = object.items?.data?.find((item) => priceIds.includes(item.price?.id));
+  if (event.type.startsWith('customer.subscription.') && !matchedItem) {
     return json({ error: 'Unexpected subscription price.' }, 400);
   }
   const store = await getStore();
@@ -31,7 +34,7 @@ export async function POST(request) {
   // Since API version 2025-03-31.basil the billing period lives on subscription
   // items, not on the subscription itself; accept both shapes.
   const periodEnd = object.current_period_end
-    ?? object.items?.data?.find((item) => item.price?.id === process.env.STRIPE_PRICE_ID)?.current_period_end
+    ?? matchedItem?.current_period_end
     ?? object.items?.data?.[0]?.current_period_end;
   await store.update((data) => {
     const stored = data.users.find((item) => item.id === user.id);
@@ -43,7 +46,7 @@ export async function POST(request) {
       stripeCustomerId: String(object.customer || billing.stripeCustomerId || ''),
       subscriptionId: object.subscription || object.id,
       status: event.type === 'checkout.session.completed' ? 'pending' : object.status,
-      priceId: object.items?.data?.find((item) => item.price?.id === process.env.STRIPE_PRICE_ID)?.price?.id || billing.priceId || process.env.STRIPE_PRICE_ID,
+      priceId: matchedItem?.price?.id || billing.priceId || process.env.STRIPE_PRICE_ID,
       currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : billing.currentPeriodEnd || null,
       lastStripeEventCreated: Number.isFinite(event.created) ? Math.max(event.created, billing.lastStripeEventCreated || 0) : billing.lastStripeEventCreated,
       processedStripeEventIds: [event.id, ...(billing.processedStripeEventIds || [])].slice(0, 100),

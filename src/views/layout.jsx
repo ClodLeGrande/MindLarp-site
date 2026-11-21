@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { StaticContent } from '@/components/static-content.jsx';
 import { TrustedController } from '@/components/trusted-controller.jsx';
 import { icon } from '../html.js';
+import { chatUrl } from '../server/config.js';
 
 export const navigation = [
   ['Models', '/models'],
@@ -50,12 +51,12 @@ export async function publicLayout({ path = '/', content, bodyClass = '' }) {
           const active = path === href || (href !== '/' && path.startsWith(`${href}/`));
           return <a key={href} className={`rail-link ${active ? 'active' : ''}`} href={href} aria-current={active ? 'page' : undefined}>{label}</a>;
         })}</nav>
-        <div className="rail-bottom"><a className="header-console" href="/console">Console</a><a className="button button-primary header-chat" href="/chat">Start chat <Icon name="arrow" /></a></div>
+        <div className="rail-bottom"><a className="header-console" href="/console">Console</a><a className="button button-primary header-chat" href={chatUrl() || '/console'}>Start chat <Icon name="arrow" /></a></div>
       </aside>
     </header>
     <main id="main" className="public-main">{renderContent(content)}</main>
     <footer className="public-footer">
-      <div className="footer-top"><div><a href="/" className="brand"><Brand /></a><p>Two models. One API.<br />Intelligence for whatever comes next.</p></div><a href="/chat" className="button button-primary">Start a conversation <Icon name="arrow" /></a></div>
+      <div className="footer-top"><div><a href="/" className="brand"><Brand /></a><p>Two models. One API.<br />Intelligence for whatever comes next.</p></div><a href={chatUrl() || '/console'} className="button button-primary">Start a conversation <Icon name="arrow" /></a></div>
       <div className="footer-grid">
         <div><span className="footer-label">/ EXPLORE</span><a href="/models">Models</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a></div>
         <div><span className="footer-label">/ DEVELOPERS</span><a href="/docs">Documentation</a><a href="/docs/api-reference">API reference</a><a href="/console">Console</a></div>
@@ -71,15 +72,16 @@ export async function publicLayout({ path = '/', content, bodyClass = '' }) {
 }
 
 export function consoleLayout({ path, content, user, csrf }) {
-  const items = [['/console', 'Overview', 'home'], ['/chat', 'Chat', 'arrow'], ['/console/keys', 'API keys', 'key'], ['/console/usage', 'Usage', 'chart'], ['/console/billing', 'Billing', 'chart'], ['/console/settings', 'Settings', 'settings']];
+  const items = [['/console', 'Overview', 'home'], ['/console/keys', 'API keys', 'key'], ['/console/usage', 'Usage', 'chart'], ['/console/billing', 'Billing', 'chart'], ['/console/settings', 'Settings', 'settings']];
+  const chat = chatUrl();
   return <div className="console-page">
     <a className="skip-link" href="#main">Skip to content</a>
     <aside className="console-sidebar">
       <div className="console-sidebar-head"><a href="/" className="brand"><Brand /></a><span className="console-badge">WORKSPACE / 01</span></div>
-      <nav className="console-nav" aria-label="Console navigation">{items.map(([href, label, iconName]) => <a key={href} href={href} className={`console-nav-link ${path === href ? 'active' : ''}`} aria-current={path === href ? 'page' : undefined}><Icon name={iconName} /> {label}<span>↗</span></a>)}</nav>
+      <nav className="console-nav" aria-label="Console navigation">{items.map(([href, label, iconName]) => <a key={href} href={href} className={`console-nav-link ${path === href ? 'active' : ''}`} aria-current={path === href ? 'page' : undefined}><Icon name={iconName} /> {label}<span className="nav-arrow">↗</span></a>)}<a href={chat || '/console'} className="console-nav-link" {...(chat ? { target: '_blank', rel: 'noopener' } : {})}><Icon name="arrow" /> Chat<span className="nav-arrow">↗</span></a></nav>
       <div className="console-sidebar-bottom">
         <div className="console-connection"><span className="status-dot" /> CONNECTED</div>
-        <a href="/docs" className="console-nav-link"><Icon name="arrow" /> Documentation</a>
+        <a href="/docs" className="console-nav-link"><Icon name="arrow" /> Documentation<span className="nav-arrow">↗</span></a>
         <form method="post" action="/console/logout"><input type="hidden" name="csrf" value={csrf} /><button className="console-nav-link logout-button" type="submit"><Icon name="logout" /> Sign out</button></form>
         <div className="user-chip"><span className="avatar">{user.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{user.displayName}</strong><small>{user.email}</small></span></div>
       </div>

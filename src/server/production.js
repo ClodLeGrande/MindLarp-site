@@ -47,6 +47,16 @@ export function validateProductionConfig(env = process.env) {
   if (stripeValues.some((key) => env[key]) && stripeValues.some((key) => !env[key])) {
     errors.push('STRIPE_SECRET_KEY, STRIPE_PRICE_ID, and STRIPE_WEBHOOK_SECRET must be configured together.');
   }
+  for (const plan of ['PRO', 'PLUS', 'STUDIO']) {
+    const link = env[`STRIPE_PAYMENT_LINK_${plan}`];
+    if (link && (!validUrl(link) || new URL(link).protocol !== 'https:')) {
+      errors.push(`STRIPE_PAYMENT_LINK_${plan} must be an absolute HTTPS URL (a Stripe payment link).`);
+    }
+    const limit = env[`INFERENCE_DAILY_REQUEST_LIMIT_${plan}`];
+    if (limit && (!Number.isInteger(Number(limit)) || Number(limit) < 1 || Number(limit) > 100000)) {
+      errors.push(`INFERENCE_DAILY_REQUEST_LIMIT_${plan} must be an integer between 1 and 100000.`);
+    }
+  }
   for (const key of ['DATABASE_QUERY_TIMEOUT', 'DATABASE_STATEMENT_TIMEOUT', 'DATABASE_LOCK_TIMEOUT']) {
     if (env[key] && (!Number.isInteger(Number(env[key])) || Number(env[key]) < 100 || Number(env[key]) > 300000)) {
       errors.push(`${key} must be an integer between 100 and 300000 milliseconds.`);

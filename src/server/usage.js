@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { planDailyLimit, planForPriceId } from './plans.js';
 import { getStore } from './store.js';
 
 export function getUsageStats(store, userId, days, now = Date.now()) {
@@ -37,11 +38,12 @@ export async function getInferenceAccessError(userId) {
     return [403, 'An active subscription is required for model inference.', 'permission_error', 'inference_access_denied'];
   }
 
-  const dailyLimit = Number(process.env.INFERENCE_DAILY_REQUEST_LIMIT || 0);
+  const plan = planForPriceId(user.billing?.priceId);
+  const dailyLimit = plan ? planDailyLimit(plan) : Number(process.env.INFERENCE_DAILY_REQUEST_LIMIT || 0);
   if (dailyLimit > 0) {
     const start = new Date();
     start.setUTCHours(0, 0, 0, 0);
-    const requests = store.data.usage.filter((event) => event.userId === userId && ['/chat', '/v1/chat/completions'].includes(event.endpoint) && Date.parse(event.createdAt) >= start.getTime()).length;
+    const requests = store.data.usage.filter((event) => event.userId === userId && event.endpoint === '/v1/chat/completions' && Date.parse(event.createdAt) >= start.getTime()).length;
     if (requests >= dailyLimit) return [429, 'The daily inference request limit for this account has been reached.', 'rate_limit_error', 'inference_quota_exceeded'];
   }
 

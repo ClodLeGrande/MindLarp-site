@@ -168,8 +168,11 @@ export async function findOrCreateOAuthUser(identity) {
       )
     );
 
-    if (!user && data.users.some((item) => normalizeEmail(item.email) === email)) {
-      throw new Error('An account with this email already exists. Sign in with its original authentication method.');
+    if (!user) {
+      // completeOAuth only returns provider-verified emails (Google
+      // email_verified, GitHub verified primary), so matching by email
+      // safely links this identity to the existing account.
+      user = data.users.find((item) => normalizeEmail(item.email) === email);
     }
 
     if (user) {

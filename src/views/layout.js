@@ -1,4 +1,5 @@
 import { escapeHtml, icon } from '../html.js';
+import { chatUrl } from '../server/config.js';
 
 const navigation = [
   ['Models', '/models'],
@@ -68,11 +69,11 @@ export function publicLayout({ title, description = 'A family of AI models for c
   <header class="public-header">
     <a href="/" class="brand" aria-label="MindLarp home">${brand()}</a>
     <button class="icon-button nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">${icon('menu')}</button>
-    <aside class="public-rail"><nav class="rail-nav" aria-label="Main navigation">${nav}</nav><div class="rail-bottom"><a class="header-console" href="/console">Console</a><a class="button button-primary header-chat" href="/chat">Start chat ${icon('arrow')}</a></div></aside>
+    <aside class="public-rail"><nav class="rail-nav" aria-label="Main navigation">${nav}</nav><div class="rail-bottom"><a class="header-console" href="/console">Console</a><a class="button button-primary header-chat" href="${escapeHtml(chatUrl() || '/console')}">Start chat ${icon('arrow')}</a></div></aside>
   </header>
   <main id="main" class="public-main">${content}</main>
   <footer class="public-footer">
-    <div class="footer-top"><div><a href="/" class="brand">${brand()}</a><p>Two models. One API.<br>Intelligence for whatever comes next.</p></div><a href="/chat" class="button button-primary">Start a conversation ${icon('arrow')}</a></div>
+    <div class="footer-top"><div><a href="/" class="brand">${brand()}</a><p>Two models. One API.<br>Intelligence for whatever comes next.</p></div><a href="${escapeHtml(chatUrl() || '/console')}" class="button button-primary">Start a conversation ${icon('arrow')}</a></div>
     <div class="footer-grid">
       <div><span class="footer-label">/ EXPLORE</span><a href="/models">Models</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a></div>
       <div><span class="footer-label">/ DEVELOPERS</span><a href="/docs">Documentation</a><a href="/docs/api-reference">API reference</a><a href="/console">Console</a></div>
@@ -89,7 +90,6 @@ export function publicLayout({ title, description = 'A family of AI models for c
 export function consoleLayout({ title, path, content, user, csrf, nonce = '' }) {
   const items = [
     ['/console', 'Overview', 'home'],
-    ['/chat', 'Chat', 'arrow'],
     ['/console/keys', 'API keys', 'key'],
     ['/console/usage', 'Usage', 'chart'],
     ['/console/billing', 'Billing', 'chart'],
@@ -97,8 +97,10 @@ export function consoleLayout({ title, path, content, user, csrf, nonce = '' }) 
   ];
   const nav = items.map(([href, label, iconName]) => {
     const active = path === href;
-    return `<a href="${href}" class="console-nav-link ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>${icon(iconName)} ${label}<span>↗</span></a>`;
+    return `<a href="${href}" class="console-nav-link ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>${icon(iconName)} ${label}<span class="nav-arrow">↗</span></a>`;
   }).join('');
+  const chat = chatUrl();
+  const chatLink = `<a href="${escapeHtml(chat || '/console')}" class="console-nav-link" ${chat ? 'target="_blank" rel="noopener"' : ''}>${icon('arrow')} Chat<span class="nav-arrow">↗</span></a>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -115,10 +117,10 @@ export function consoleLayout({ title, path, content, user, csrf, nonce = '' }) 
   <a class="skip-link" href="#main">Skip to content</a>
   <aside class="console-sidebar">
     <div class="console-sidebar-head"><a href="/" class="brand">${brand()}</a><span class="console-badge">WORKSPACE / 01</span></div>
-    <nav class="console-nav" aria-label="Console navigation">${nav}</nav>
+    <nav class="console-nav" aria-label="Console navigation">${nav}${chatLink}</nav>
     <div class="console-sidebar-bottom">
       <div class="console-connection"><span class="status-dot"></span> CONNECTED</div>
-      <a href="/docs" class="console-nav-link">${icon('arrow')} Documentation</a>
+      <a href="/docs" class="console-nav-link">${icon('arrow')} Documentation<span class="nav-arrow">↗</span></a>
       <form method="post" action="/console/logout"><input type="hidden" name="csrf" value="${csrf}"><button class="console-nav-link logout-button" type="submit">${icon('logout')} Sign out</button></form>
       <div class="user-chip"><span class="avatar">${escapeHtml(user.displayName.slice(0, 1).toUpperCase())}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>${escapeHtml(user.email)}</small></span></div>
     </div>

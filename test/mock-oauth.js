@@ -12,8 +12,8 @@ globalThis.fetch = async (input, init = {}) => {
     const token = String(init.headers?.Authorization || '').replace('Bearer mock-token-', '') || 'oauth';
     return Response.json({
       sub: `google-${token}`,
-      email: `${token}@example.com`,
-      email_verified: true,
+      email: token === 'unverified' ? 'victim@example.com' : `${token}@example.com`,
+      email_verified: token !== 'unverified',
       name: `${token} OAuth User`,
     });
   }
