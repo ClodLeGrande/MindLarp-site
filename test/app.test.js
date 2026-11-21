@@ -186,9 +186,12 @@ test('public pages, assets, SEO, trust strip, and health work on Next.js', async
   assert.match(html, /application\/ld\+json/);
   assert.match(response.headers.get('content-security-policy'), /nonce-/);
   assert.match(response.headers.get('content-security-policy'), /strict-dynamic/);
+  assert.match(response.headers.get('content-security-policy'), /form-action 'self' https:\/\/checkout\.stripe\.com https:\/\/billing\.stripe\.com/);
   assert.match(html, /\u00A9 2026 ClodLeGrande/);
   for (const name of ['GitHub', 'YouTube', 'Hugging Face', 'Telegram', 'Discord']) assert.match(html, new RegExp(`aria-label="MindLarp on ${name}"`));
   assert.match(html, /Start chat/);
+  assert.match(html, /have not been released yet/);
+  assert.match(await (await fetch(`${origin}/models/larp-1`)).text(), /has not been released yet/);
   assert.match(html, /Trusted by 22M\+ developers/);
   const renderedMarkup = html.split('<script type="application/ld+json"')[0];
   assert.equal((renderedMarkup.match(/data-trusted-set/g) || []).length, 3);
@@ -303,10 +306,12 @@ test('unconfigured inference and chat return truthful errors and record request 
   const html = await (await fetch(`${origin}/chat`, { headers: { Cookie: cookie } })).text();
   const csrf = html.match(/name="csrf" value="([^"]+)"/)[1];
   assert.match(html, /What are you thinking about/);
+  assert.match(html, /MindLarp models have not been released yet/);
   response = await fetch(`${origin}/chat/messages`, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'MindLarp-Larp-1', message: 'Hello' }) });
   assert.equal(response.status, 403);
   response = await fetch(`${origin}/chat/messages`, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf, model: 'MindLarp-Larp-1', message: 'Hello' }) });
   assert.equal(response.status, 503);
+  assert.match((await response.json()).error.message, /have not been released yet/);
   const overview = await (await fetch(`${origin}/console`, { headers: { Cookie: cookie } })).text();
   assert.match(overview, /Latest API requests/);
 });
@@ -462,6 +467,19 @@ test('signed Stripe webhook updates billing and rejects an invalid signature', a
   assert.equal(billing.status, 'active');
   assert.equal(billing.priceId, 'price_test');
   assert.ok(billing.currentPeriodEnd);
+
+  const itemPeriodEnd = Math.floor(Date.now() / 1000) + 172800;
+  response = await sendEvent('customer.subscription.updated', {
+    id: 'sub_test',
+    customer: 'cus_test',
+    status: 'active',
+    items: {
+      data: [{ price: { id: 'price_test' }, current_period_end: itemPeriodEnd }],
+    },
+  }, { id: 'evt_subscription_updated_item_period' });
+  assert.equal(response.status, 200);
+  billing = (await readData()).users[0].billing;
+  assert.equal(Date.parse(billing.currentPeriodEnd), itemPeriodEnd * 1000);
 
   response = await sendEvent('checkout.session.completed', {
     id: 'cs_test',

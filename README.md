@@ -7,11 +7,8 @@ The website, documentation, chat, and developer console for the MindLarp model f
 - Responsive public website with model pages, pricing, changelog, status, and legal pages.
 - English documentation and an OpenAI-compatible API reference.
 - SEO metadata, Open Graph, JSON-LD, `robots.txt`, sitemap, and web manifest.
-- Chat connected to a configurable OpenAI-compatible inference service.
-- Open WebUI chat container wired to the MindLarp API for conversations with the model family.
-- Account registration, returning-user login, logout, and password changes.
-- Google and GitHub OAuth with PKCE where supported.
-- Password recovery over SMTP using single-use, 30-minute tokens.
+- Built-in web chat connected to a configurable OpenAI-compatible inference service.
+- OAuth-only sign-in with Google and GitHub (PKCE where supported); email/password login, registration, and password recovery are disabled.
 - Console with scoped API keys, usage reporting, profile settings, and billing.
 - Stripe Checkout, Customer Portal, and signed subscription webhooks.
 - PostgreSQL persistence with migrations, transactions, constraints, indexes, and row-level security.
@@ -42,10 +39,9 @@ Open [http://localhost:5173](http://localhost:5173). PostgreSQL listens only on 
 
 On a new installation, visit `/setup` and create the owner account. After that:
 
-- `/register` creates additional accounts.
-- `/login` signs in returning users.
-- `/forgot-password` starts SMTP password recovery.
-- `/chat` opens the model chat.
+- `/login` signs users in with Google or GitHub OAuth (the only sign-in method).
+- `/register`, `/forgot-password`, and `/reset-password` redirect to `/login`; the password endpoints return `410`.
+- `/chat` opens the built-in model chat.
 - `/console` manages keys, usage, billing, and settings.
 - `/docs` contains the developer documentation.
 
@@ -94,11 +90,6 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION` | No | Explicit development/private-deployment bypass for subscription checks. In production, either leave this unset and configure Stripe or set it deliberately for a trusted non-billing deployment. |
 | `INFERENCE_DAILY_REQUEST_LIMIT` | For production inference | Positive account-level daily request quota shared by API keys and chat; production validation requires it whenever inference is enabled. |
 | `ALLOW_HTTP_UPSTREAM` | No | Explicitly allow a non-local HTTP upstream only on a trusted private network. HTTPS is required otherwise. |
-| `MINDLARP_OPENWEBUI_API_KEY` | For Open WebUI | MindLarp API key with `models:read` and `inference:write` scopes used by the Open WebUI container. |
-| `OPENWEBUI_PORT` | No | Local host port for Open WebUI; defaults to `3001`. |
-| `OPENWEBUI_BIND` | No | Bind address for the Open WebUI port; defaults to `127.0.0.1`. Set `0.0.0.0` only for direct exposure or a TLS proxy on another interface. |
-| `OPENWEBUI_API_BASE_URL` | No | MindLarp API base URL as seen from the Open WebUI container; defaults to `http://host.docker.internal:5173/v1`. |
-| `OPENWEBUI_URL` | No | Public origin of Open WebUI used by the console Chat button and the container; defaults to `http://localhost:3001`. HTTPS is required in production. |
 | `GOOGLE_CLIENT_ID` | For Google login | Google OAuth client ID. |
 | `GOOGLE_CLIENT_SECRET` | For Google login | Google OAuth client secret. |
 | `GITHUB_CLIENT_ID` | For GitHub login | GitHub OAuth client ID. |
@@ -106,13 +97,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `STRIPE_SECRET_KEY` | For billing | Stripe secret API key. |
 | `STRIPE_PRICE_ID` | For billing | ID of a recurring Stripe Price. |
 | `STRIPE_WEBHOOK_SECRET` | For billing | Signing secret for the Stripe webhook endpoint. |
-| `SMTP_HOST` | For recovery | SMTP server hostname. |
-| `SMTP_PORT` | No | SMTP port; defaults to `587`. |
-| `SMTP_SECURE` | No | `true` for implicit TLS, commonly port `465`; otherwise `false`. |
-| `SMTP_REQUIRE_TLS` | No | Defaults to `true` in production. Keep it enabled for STARTTLS on port `587`; plaintext is accepted only for a local test relay. |
-| `SMTP_USER` | If required | SMTP username. |
-| `SMTP_PASS` | If required | SMTP password or app password. |
-| `SMTP_FROM` | For recovery | Sender, for example `MindLarp <no-reply@mindlarp.ai>`. |
+| `SMTP_*` | Reserved | SMTP settings are validated but currently unused: password recovery is disabled under OAuth-only sign-in. |
 
 Do not expose server environment values in browser JavaScript. Console API keys authenticate MindLarp users; `MINDLARP_UPSTREAM_KEY` authenticates this server with its inference provider.
 
@@ -183,90 +168,6 @@ curl http://localhost:5173/v1/chat/completions \
   -d '{"model":"MindLarp-Larp-1","messages":[{"role":"user","content":"Hello"}]}'
 ```
 
-## Open WebUI
-
-Open WebUI is a full-featured chat interface for the MindLarp models. It runs as a Docker container and talks to this application's OpenAI-compatible API, so conversations use the same scoped keys, quotas, and usage tracking as any other client.
-
-1. Start the site (`npm run dev`) and sign in to the console.
-2. Create an API key at `/console/keys` with the `models:read` and `inference:write` scopes.
-3. Paste the secret into `.env`:
-
-```dotenv
-MINDLARP_OPENWEBUI_API_KEY=ml_sk_live_your_key
-```
-
-4. Start the container and open [http://localhost:3001](http://localhost:3001):
-
-```bash
-npm run openwebui:up
-```
-
-The first account created in Open WebUI becomes its admin. Both MindLarp models appear in the model picker automatically, and Open WebUI data persists in the named `mindlarp-openwebui` Docker volume. The console **Chat** button links to `OPENWEBUI_URL` (default `http://localhost:3001`).
-
-The container reaches the site through `host.docker.internal` (`OPENWEBUI_API_BASE_URL`, default `http://host.docker.internal:5173/v1`). Point it at your deployed HTTPS origin when the site is not running locally. Model responses also require `MINDLARP_UPSTREAM_URL` on the site and either an active subscription or `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION=true`; without an upstream, Open WebUI surfaces the API's `503 inference_not_configured` error.
-
-### Open WebUI in production
-
-By default the container binds to `127.0.0.1:${OPENWEBUI_PORT:-3001}` (`OPENWEBUI_BIND`), so it is reachable only from the host. The recommended public setup is a TLS-terminating reverse proxy on the same host; set the public origin so the console Chat button and Open WebUI itself use the right URL:
-
-```dotenv
-OPENWEBUI_URL=https://chat.example.com
-# MindLarp API reachable from the container: the public HTTPS origin, or the
-# co-located site via http://host.docker.internal:3000/v1 (treated as private).
-# Other private HTTP origins need ALLOW_HTTP_UPSTREAM=true.
-OPENWEBUI_API_BASE_URL=https://mindlarp.ai/v1
-MINDLARP_OPENWEBUI_API_KEY=ml_sk_live_key_created_on_the_production_console
-```
-
-`check:production` rejects non-HTTPS `OPENWEBUI_URL` values (unless local or explicitly overridden) and validates `OPENWEBUI_API_BASE_URL` like any other upstream. Create the API key on the production console; development keys do not exist there.
-
-Caddy handles the WebSocket upgrade automatically:
-
-```caddyfile
-chat.example.com {
-  reverse_proxy 127.0.0.1:3001
-}
-```
-
-For nginx, forward the upgrade headers and keep long-lived streaming connections open:
-
-```nginx
-server {
-  listen 443 ssl;
-  server_name chat.example.com;
-  # ssl_certificate / ssl_certificate_key ...
-
-  location / {
-    proxy_pass http://127.0.0.1:3001;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_read_timeout 3600s;
-    proxy_send_timeout 3600s;
-  }
-}
-```
-
-Open WebUI keeps its own accounts and chat history in the `mindlarp-openwebui` volume; back it up like any other stateful service. MindLarp API quotas, key scopes, and subscription entitlements still apply to every request it makes.
-
-### Direct exposure without a proxy (testing only)
-
-To publish the container port directly, bind it to all interfaces and open the port in the host firewall and any cloud security group:
-
-```dotenv
-OPENWEBUI_BIND=0.0.0.0
-OPENWEBUI_URL=http://your-server-ip:3001
-```
-
-Then run `npm run openwebui:up` and allow inbound TCP `3001` (for example `ufw allow 3001/tcp`). The instance is reachable at `http://your-server-ip:3001`.
-
-This serves plain HTTP: passwords and chat traffic are unencrypted, so use it only for short tests on a trusted network, never for real users. Create the admin account **before** exposing the port — the first visitor to an unclaimed instance becomes its admin — and disable further signups afterwards in Admin Panel → Settings. For anything permanent, use the TLS reverse proxy above instead.
-
-Signup and role settings persist in the Open WebUI database after first launch and override environment values; manage them in Admin Panel → Settings. The compose file sets `DEFAULT_USER_ROLE: user` so newly registered visitors can chat without manual approval.
-
 ## Google and GitHub login
 
 Create separate OAuth applications with these callback URLs, replacing the origin with `PUBLIC_URL`:
@@ -280,10 +181,14 @@ For Google, configure an OAuth **Web application** in Google Cloud Console. For 
 
 ## Stripe billing
 
-1. Create a recurring Price and set `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID`.
-2. Create a webhook destination at `https://your-domain.example/webhooks/stripe`.
-3. Subscribe to `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted`.
-4. Set `STRIPE_WEBHOOK_SECRET` from the webhook destination.
+Checkout, Customer Portal, and signed subscription webhooks are implemented. To activate billing:
+
+1. In the Stripe Dashboard (start in **test mode**), create a Product with a recurring Price and set `STRIPE_SECRET_KEY` (`sk_test_...`) and `STRIPE_PRICE_ID` (`price_...`).
+2. Activate the Customer Portal in Stripe settings (Settings → Billing → Customer portal); the portal route requires an existing Stripe customer.
+3. Create a webhook destination at `https://your-domain.example/webhooks/stripe`.
+4. Subscribe to exactly these events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted`.
+5. Set `STRIPE_WEBHOOK_SECRET` (`whsec_...`) from the webhook destination. All three variables must be configured together; `check:production` enforces this.
+6. Verify the full flow with a test card (`4242 4242 4242 4242`), then repeat with live keys (`sk_live_...`) and a live webhook destination before launch.
 
 For local forwarding:
 
@@ -291,20 +196,11 @@ For local forwarding:
 stripe listen --forward-to localhost:5173/webhooks/stripe
 ```
 
-Checkout and Customer Portal are available from `/console/billing`. Webhook signatures, expected price IDs, customer/subscription binding, duplicate event IDs, and out-of-order event timestamps are enforced. `active` and `trialing` subscriptions authorize inference together with the account daily quota. Metered token invoicing, provider spending limits, and entitlement enforcement for future non-inference features still require explicit implementation.
+Checkout and Customer Portal are available from `/console/billing`. Webhook signatures, expected price IDs, customer/subscription binding, duplicate event IDs, and out-of-order event timestamps are enforced. `active` and `trialing` subscriptions authorize inference together with the account daily quota. The webhook reads the billing period from both the legacy top-level `current_period_end` field and the subscription-item field used by API version `2025-03-31.basil` and newer. The CSP `form-action` directive allows `checkout.stripe.com` and `billing.stripe.com` so the 303 redirect from the billing forms is not blocked. Metered token invoicing, provider spending limits, and entitlement enforcement for future non-inference features still require explicit implementation.
 
-## SMTP password recovery
+## SMTP password recovery (disabled)
 
-```dotenv
-SMTP_HOST=smtp.example.com
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=no-reply@example.com
-SMTP_PASS=your-smtp-password
-SMTP_FROM="MindLarp <no-reply@example.com>"
-```
-
-For port `587`, use `SMTP_SECURE=false` with STARTTLS and keep `SMTP_REQUIRE_TLS=true`. Production rejects plaintext SMTP outside a local test relay. Reset links expire after 30 minutes, are stored only as hashes, are consumed atomically, and cannot be reused; concurrent submissions of the same token can succeed only once. A successful reset signs out all existing sessions. Without `SMTP_HOST`, recovery reports its configuration state rather than claiming an email was sent.
+Sign-in is OAuth-only, so password recovery is disabled: `/forgot-password` and `/reset-password` redirect to `/login`, and the recovery endpoints return `410`. The SMTP configuration and production validation remain in place for a possible future re-enablement, but no email is sent today.
 
 ## Verification
 
@@ -315,7 +211,7 @@ npm run check:production
 npm audit --omit=dev
 ```
 
-Set a valid production configuration before `check:production`. The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, asset alias isolation, runtime sitemap URLs, account setup, registration/login, sessions, CSRF, API key caps, entitlement and quota checks, mock inference and streaming, bounded upstream failures, chat, OAuth redirects and account-link safety, signed/idempotent Stripe webhooks, per-account login limits, concurrent reset-token consumption, and mock SMTP recovery.
+Set a valid production configuration before `check:production`. The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, asset alias isolation, runtime sitemap URLs, account setup, the OAuth-only sign-in policy, sessions and expired-session cleanup, CSRF, API key caps, entitlement and quota checks, mock inference and streaming, bounded upstream failures, chat, OAuth redirects and account-link safety, and signed/idempotent Stripe webhooks (including item-level billing periods).
 
 To run the real PostgreSQL integration test against local Docker:
 
@@ -338,7 +234,7 @@ src/server/store.js      PostgreSQL selection and JSON fallback
 src/store.js             Atomic JSON development store
 src/views/               Page templates and layouts
 public/                  Hermes-inspired styles, scripts, icons, and manifest
-compose.yaml             Local Supabase PostgreSQL and Open WebUI containers with persistent volumes
+compose.yaml             Local Supabase PostgreSQL container with a persistent volume
 proxy.js                 Security headers and CSP nonces
 test/                    HTTP and real PostgreSQL integration tests
 ```
@@ -349,11 +245,10 @@ test/                    HTTP and real PostgreSQL integration tests
 - Serve through HTTPS and set `NODE_ENV=production` and the correct origin-only `PUBLIC_URL`.
 - Keep secrets in a deployment secret manager; never commit `.env` or publish a `.next/standalone` directory built on a workstation.
 - Put Node.js behind a reverse proxy with request limits and timeouts. The proxy must terminate public access to direct Node/PostgreSQL ports and overwrite client-supplied `X-Real-IP`/`X-Forwarded-For` before `TRUST_PROXY=true` is enabled.
-- To publish Open WebUI, keep the default loopback binding and front it with a TLS reverse proxy that supports WebSocket upgrades; set `OPENWEBUI_URL`, `OPENWEBUI_API_BASE_URL`, and a production-console API key. Direct `0.0.0.0` exposure is plain HTTP and for testing only (see Open WebUI in production).
 - Add a shared Redis/PostgreSQL-backed rate limiter before horizontal or high-risk public launch. The built-in limiter is process-local and is only a single-instance safeguard.
 - Treat PostgreSQL scaling as a launch gate: the current store refreshes and serializes broad application state. Run a realistic load test and keep one application replica until the data path is refactored into targeted SQL queries.
-- Create the owner through `/setup` before opening traffic. Decide whether public registration is allowed and add invitation/workspace authorization controls for a closed launch.
+- Create the owner through `/setup` before opening traffic. Sign-in is OAuth-only; configure Google and GitHub credentials and decide whether open OAuth signup is acceptable or invitation controls are needed for a closed launch.
 - Configure model aliases, provider-side budgets/quotas, `INFERENCE_DAILY_REQUEST_LIMIT`, and either Stripe subscriptions or an explicit non-billing inference override. Do not present quota accounting as metered invoicing.
 - Define chat/usage retention and deletion policies and review the placeholder legal page.
 - Review all model, price, status, trusted-company, and social-link content before launch.
-- Test OAuth callbacks, SMTP delivery, live-mode Stripe webhooks, provider errors, and Docker/container smoke checks on the public domain before accepting users.
+- Test OAuth callbacks, live-mode Stripe checkout/portal/webhooks, provider errors, and Docker/container smoke checks on the public domain before accepting users.

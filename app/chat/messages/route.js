@@ -22,7 +22,7 @@ export async function POST(request) {
   const model = models.find((item) => item.id === body.model);
   const content = typeof body.message === 'string' ? body.message.trim() : '';
   if (!model || !content || content.length > 16000) return apiError(400, 'Choose a model and enter a message of up to 16,000 characters.');
-  if (!process.env.MINDLARP_UPSTREAM_URL) return apiError(503, 'Model inference is not configured yet. Ask the administrator to set MINDLARP_UPSTREAM_URL.', 'service_unavailable', 'inference_not_configured');
+  if (!process.env.MINDLARP_UPSTREAM_URL) return apiError(503, 'MindLarp models have not been released yet. Responses go live at launch.', 'service_unavailable', 'inference_not_configured');
   const accessError = await getInferenceAccessError(user.id);
   if (accessError) return apiError(...accessError);
   try {

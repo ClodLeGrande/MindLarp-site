@@ -16,12 +16,17 @@ export async function POST(request) {
   const options = { user, csrf: session.csrf, path: '/console/settings' };
   if (!displayName || displayName.length > 80 || !validEmail(email)) return htmlResponse(settingsContent({ user, csrf: session.csrf, error: 'Enter a valid name and email address.' }), 'Settings', 400, options);
   const store = await getStore();
-  if (store.data.users.some((item) => item.id !== user.id && item.email === email)) return htmlResponse(settingsContent({ user, csrf: session.csrf, error: 'That email address is already in use.' }), 'Settings', 409, options);
+  let conflict = false;
   await store.update((data) => {
+    if (data.users.some((item) => item.id !== user.id && normalizeEmail(item.email) === email)) {
+      conflict = true;
+      return;
+    }
     const stored = data.users.find((item) => item.id === user.id);
     stored.displayName = displayName;
     stored.email = email;
     stored.updatedAt = new Date().toISOString();
   });
+  if (conflict) return htmlResponse(settingsContent({ user, csrf: session.csrf, error: 'That email address is already in use.' }), 'Settings', 409, options);
   return formRedirect(request, '/console/settings?updated=profile');
 }

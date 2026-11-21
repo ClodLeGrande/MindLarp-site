@@ -13,7 +13,9 @@ export function proxy(request) {
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
+    // Stripe Checkout/Portal are reached via a 303 redirect from our form POST;
+    // Chromium enforces form-action on that redirect hop too.
+    "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
   ].join('; ');
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);

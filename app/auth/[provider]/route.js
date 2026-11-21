@@ -1,13 +1,34 @@
 import { NextResponse } from 'next/server';
 import { beginOAuth, oauthCookieName } from '@/src/oauth.js';
-import { authContent } from '@/src/views/public.js';
+import { escapeHtml } from '@/src/html.js';
 import { htmlResponse } from '@/src/server/html.jsx';
 
 export async function GET(request, { params }) {
   const { provider } = await params;
   if (!['google', 'github'].includes(provider)) return new Response('Not found', { status: 404 });
   const oauth = beginOAuth(provider);
-  if (!oauth) return htmlResponse(authContent({ mode: 'login', error: `${provider === 'google' ? 'Google' : 'GitHub'} sign-in is not configured on this server.` }), 'Sign in', 503, { bodyClass: 'auth-page', path: '/console' });
+  if (!oauth) {
+    const error = `${provider === 'google' ? 'Google' : 'GitHub'} sign-in is not configured on this server.`;
+    const content = `<section class="auth-shell">
+    <div class="auth-aside">
+      <a href="/" class="auth-back">← Back to MindLarp</a>
+      <div><span class="section-kicker">YOUR WORKSPACE</span><h1>A place for<br>your next idea<span class="accent-dot">.</span></h1></div>
+      <p>One account. Every model.<br>Chat, API, usage, and billing.</p>
+    </div>
+    <div class="auth-form-wrap"><div class="auth-form">
+      <span class="section-kicker">WELCOME BACK</span>
+      <h2>Sign in to MindLarp</h2>
+      <p>Continue securely with a connected account.</p>
+      <div class="alert error" role="alert">${escapeHtml(error)}</div>
+      <div class="oauth-buttons">
+        <a class="oauth-button" href="/auth/google">Google</a>
+        <a class="oauth-button" href="/auth/github">GitHub</a>
+      </div>
+      <p class="auth-hint">Email and password sign-in are no longer available.</p>
+    </div></div>
+  </section>`;
+    return htmlResponse(content, 'Sign in', 503, { bodyClass: 'auth-page', path: '/console' });
+  }
   const response = NextResponse.redirect(oauth.authorizationUrl, 302);
   response.cookies.set(oauthCookieName(provider), oauth.payload, { path: '/', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600 });
   return response;

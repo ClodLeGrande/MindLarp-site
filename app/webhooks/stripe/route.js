@@ -28,6 +28,11 @@ export async function POST(request) {
   if (event.type.startsWith('customer.subscription.') && user.billing?.subscriptionId && user.billing.subscriptionId !== object.id) return json({ received: true });
   if (event.type === 'checkout.session.completed' && user.billing?.subscriptionId === object.subscription && user.billing.status && user.billing.status !== 'pending') return json({ received: true });
 
+  // Since API version 2025-03-31.basil the billing period lives on subscription
+  // items, not on the subscription itself; accept both shapes.
+  const periodEnd = object.current_period_end
+    ?? object.items?.data?.find((item) => item.price?.id === process.env.STRIPE_PRICE_ID)?.current_period_end
+    ?? object.items?.data?.[0]?.current_period_end;
   await store.update((data) => {
     const stored = data.users.find((item) => item.id === user.id);
     const billing = stored.billing || {};
@@ -39,7 +44,7 @@ export async function POST(request) {
       subscriptionId: object.subscription || object.id,
       status: event.type === 'checkout.session.completed' ? 'pending' : object.status,
       priceId: object.items?.data?.find((item) => item.price?.id === process.env.STRIPE_PRICE_ID)?.price?.id || billing.priceId || process.env.STRIPE_PRICE_ID,
-      currentPeriodEnd: object.current_period_end ? new Date(object.current_period_end * 1000).toISOString() : billing.currentPeriodEnd || null,
+      currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : billing.currentPeriodEnd || null,
       lastStripeEventCreated: Number.isFinite(event.created) ? Math.max(event.created, billing.lastStripeEventCreated || 0) : billing.lastStripeEventCreated,
       processedStripeEventIds: [event.id, ...(billing.processedStripeEventIds || [])].slice(0, 100),
     };
