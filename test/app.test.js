@@ -125,7 +125,7 @@ async function post(origin, path, body, cookie = '', requestOrigin = origin) {
 }
 
 async function setupOwner(origin) {
-  const response = await post(origin, '/actions/auth/setup', { displayName: 'Ada Lovelace', email: 'ada@example.com', password, confirmPassword: password });
+  const response = await post(origin, '/actions/auth/setup', { displayName: 'Ada Lovelace', email: 'ada@example.com', password, confirmPassword: password, consent: 'accepted' });
   assert.equal(response.status, 303);
   const cookie = response.headers.get('set-cookie').split(';')[0];
   assert.match(cookie, /^ml_session=/);
@@ -169,7 +169,7 @@ async function startUpstream(t, responseText = 'A clear answer.') {
 
 test('public pages, assets, SEO, trust strip, and health work on Next.js', async (t) => {
   const { origin } = await startApp(t);
-  for (const path of ['/', '/models', '/models/larp-1', '/models/larp-1-code', '/pricing', '/docs', '/docs/getting-started', '/docs/api-reference', '/changelog', '/legal', '/status']) {
+  for (const path of ['/', '/models', '/models/larp-1', '/models/larp-1-code', '/pricing', '/docs', '/docs/getting-started', '/docs/api-reference', '/changelog', '/legal', '/privacy', '/terms', '/ru/privacy', '/ru/terms', '/status']) {
     const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 200, path);
     assert.match(response.headers.get('content-type'), /text\/html/);
@@ -378,8 +378,9 @@ test('email/password login and registration remain disabled while logout works',
   assert.equal((await readData()).users.length, 1);
 
   const loginHtml = await (await fetch(`${origin}/login`)).text();
-  assert.match(loginHtml, /href="\/auth\/google"><svg viewBox="0 0 48 48"/);
-  assert.match(loginHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);
+  assert.match(loginHtml, /formaction="\/auth\/google"><svg viewBox="0 0 48 48"/);
+  assert.match(loginHtml, /formaction="\/auth\/github"><svg viewBox="0 0 16 16"/);
+  assert.match(loginHtml, /name="consent" value="accepted" required/);
 });
 
 test('Google and GitHub OAuth report missing configuration or redirect with protected state', async (t) => {
@@ -589,7 +590,7 @@ test('OAuth links verified emails to existing accounts and rejects unverified on
       NODE_OPTIONS: `--import ${mockModule}`,
     },
   });
-  let response = await post(origin, '/actions/auth/setup', { displayName: 'Victim', email: 'victim@example.com', password, confirmPassword: password });
+  let response = await post(origin, '/actions/auth/setup', { displayName: 'Victim', email: 'victim@example.com', password, confirmPassword: password, consent: 'accepted' });
   assert.equal(response.status, 303);
 
   async function completeGoogle(code) {
@@ -783,4 +784,100 @@ test('repeated password-login requests cannot bypass the OAuth-only sign-in poli
   const data = await readData();
   assert.equal(data.users.length, 1);
   assert.equal(data.sessions.length, 1);
+});
+
+test('legal pages serve full RU and EN documents with support contacts and plan appendix', async (t) => {
+  const { origin } = await startApp(t);
+  const pages = {
+    '/privacy': ['PRIVACY POLICY', 'Contact Information'],
+    '/ru/privacy': ['ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ', 'Контактная информация'],
+    '/terms': ['USER AGREEMENT', 'Final Provisions', 'Appendix — Plans'],
+    '/ru/terms': ['ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ', 'Заключительные положения', 'Приложение — Тарифы'],
+  };
+  for (const [path, texts] of Object.entries(pages)) {
+    const response = await fetch(`${origin}${path}`);
+    assert.equal(response.status, 200, path);
+    const html = await response.text();
+    for (const text of texts) assert.ok(html.includes(text), `${path}: ${text}`);
+    for (let section = 1; section <= 10; section += 1) assert.ok(html.includes(`<span class="legal-number">${section}.</span>`), `${path}: section ${section}`);
+    assert.ok(!html.includes('RollyPay'), path);
+    assert.ok(html.includes('MindLarp'), path);
+    assert.ok(html.includes('href="mailto:maksimansakov423@gmail.com"'), path);
+  }
+  const privacyRu = await (await fetch(`${origin}/ru/privacy`)).text();
+  assert.ok(privacyRu.includes('Настоящая Политика конфиденциальности определяет порядок сбора, обработки, хранения и защиты персональных данных'));
+  assert.ok(privacyRu.includes('обратиться в службу поддержки по адресу <a href="mailto:maksimansakov423@gmail.com">maksimansakov423@gmail.com</a>'));
+  const privacyEn = await (await fetch(`${origin}/privacy`)).text();
+  assert.ok(privacyEn.includes('This Privacy Policy defines the procedure for the collection, processing, storage, and protection of personal data'));
+  const termsRu = await (await fetch(`${origin}/ru/terms`)).text();
+  assert.ok(termsRu.includes('полное и безоговорочное принятие Заказчиком условий настоящего Договора'));
+  for (const [path, other] of [['/privacy', '/ru/privacy'], ['/terms', '/ru/terms'], ['/ru/privacy', '/privacy'], ['/ru/terms', '/terms']]) {
+    const html = await (await fetch(`${origin}${path}`)).text();
+    assert.ok(html.includes(`href="${other}"`), `${path} -> ${other}`);
+  }
+  for (const path of ['/terms', '/ru/terms']) {
+    const html = await (await fetch(`${origin}${path}`)).text();
+    for (const price of ['<td>$19</td>', '<td>$79</td>', '<td>$199</td>']) assert.ok(html.includes(price), path);
+    assert.match(html, /≈1[\s\u00A0]710 ₽/);
+    assert.match(html, /≈7[\s\u00A0]110 ₽/);
+    assert.match(html, /≈17[\s\u00A0]910 ₽/);
+  }
+  assert.ok((await (await fetch(`${origin}/terms`)).text()).includes('Charges are billed in USD.'));
+  assert.ok((await (await fetch(`${origin}/ru/terms`)).text()).includes('Оплата списывается в USD.'));
+  const legal = await (await fetch(`${origin}/legal`)).text();
+  for (const link of ['href="/privacy"', 'href="/terms"', 'href="/ru/privacy"', 'href="/ru/terms"', 'mailto:maksimansakov423@gmail.com']) assert.ok(legal.includes(link), link);
+});
+
+test('plan prices show indicative ruble amounts from a single configurable rate', async (t) => {
+  const { origin } = await startApp(t);
+  const pricing = await (await fetch(`${origin}/pricing`)).text();
+  assert.match(pricing, /\$19<span class="plan-price-rub"> · ≈1[\s\u00A0]710 ₽<\/span>/);
+  assert.match(pricing, /\$79<span class="plan-price-rub"> · ≈7[\s\u00A0]110 ₽<\/span>/);
+  assert.match(pricing, /\$199<span class="plan-price-rub"> · ≈17[\s\u00A0]910 ₽<\/span>/);
+  assert.ok(pricing.includes('Charges are billed in USD. The ruble amount is indicative, converted at 90 ₽/$.'));
+  const custom = await startApp(t, { env: { USD_TO_RUB: '100' } });
+  const customPricing = await (await fetch(`${custom.origin}/pricing`)).text();
+  assert.match(customPricing, /≈1[\s\u00A0]900 ₽/);
+  assert.ok(customPricing.includes('converted at 100 ₽/$'));
+  const cookie = await setupOwner(custom.origin);
+  const billing = await (await fetch(`${custom.origin}/console/billing`, { headers: { Cookie: cookie } })).text();
+  assert.match(billing, /≈1[\s\u00A0]900 ₽/);
+});
+
+test('footer links to legal documents and support on every page', async (t) => {
+  const { origin } = await startApp(t);
+  for (const path of ['/', '/pricing', '/privacy', '/ru/terms', '/docs']) {
+    const html = await (await fetch(`${origin}${path}`)).text();
+    for (const link of ['href="/privacy">Privacy Policy', 'href="/terms">Terms of Service', 'href="mailto:maksimansakov423@gmail.com">Support']) assert.ok(html.includes(link), `${path}: ${link}`);
+  }
+});
+
+test('registration and payment require accepting the legal documents', async (t) => {
+  const { origin, readData } = await startApp(t);
+  const setupHtml = await (await fetch(`${origin}/setup`)).text();
+  assert.match(setupHtml, /name="consent" value="accepted" required/);
+  let response = await post(origin, '/actions/auth/setup', { displayName: 'Ada', email: 'ada@example.com', password, confirmPassword: password });
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get('location'), '/setup?error=consent');
+  assert.equal((await readData()).users.length, 0);
+  assert.match(await (await fetch(`${origin}/setup?error=consent`)).text(), /must accept the Terms of Service and Privacy Policy/);
+
+  const cookie = await setupOwner(origin);
+  const loginHtml = await (await fetch(`${origin}/login`)).text();
+  assert.match(loginHtml, /name="consent" value="accepted" required/);
+  response = await post(origin, '/auth/google', {});
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get('location'), '/login?error=consent');
+  response = await post(origin, '/auth/google', { consent: 'accepted' });
+  assert.equal(response.status, 503);
+
+  const billingHtml = await (await fetch(`${origin}/console/billing`, { headers: { Cookie: cookie } })).text();
+  assert.match(billingHtml, /name="consent" value="accepted" required/);
+  const configured = await startApp(t, { env: { STRIPE_SECRET_KEY: 'sk_test_mindlarp', STRIPE_PRICE_ID: 'price_test', STRIPE_WEBHOOK_SECRET: 'whsec_mindlarp_test' } });
+  const configuredCookie = await setupOwner(configured.origin);
+  const configuredBilling = await (await fetch(`${configured.origin}/console/billing`, { headers: { Cookie: configuredCookie } })).text();
+  const csrf = configuredBilling.match(/name="csrf" value="([^"]+)"/)[1];
+  response = await post(configured.origin, '/console/billing/checkout', { csrf }, configuredCookie);
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /must accept the Terms of Service and Privacy Policy/);
 });

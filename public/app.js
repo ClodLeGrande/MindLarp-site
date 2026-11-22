@@ -57,6 +57,18 @@ export function initializePage() {
     }
   }));
 
+  document.querySelectorAll('[data-consent-gate]').forEach((gate) => {
+    const checkbox = document.getElementById(gate.dataset.consentGate);
+    const note = gate.parentElement?.querySelector('.consent-note');
+    gate.querySelectorAll('a.button').forEach((link) => on(link, 'click', (event) => {
+      if (checkbox?.checked) return;
+      event.preventDefault();
+      if (note) note.hidden = false;
+      checkbox?.focus();
+    }));
+    on(checkbox, 'change', () => { if (note && checkbox.checked) note.hidden = true; });
+  });
+
   return () => {
     controller.abort();
     timers.forEach(clearTimeout);

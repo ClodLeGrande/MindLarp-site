@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import { beginOAuth, oauthCookieName } from '@/src/oauth.js';
 import { brandIcon, escapeHtml } from '@/src/html.js';
 import { htmlResponse } from '@/src/server/html.jsx';
+import { formRedirect, readForm } from '@/src/server/responses.js';
+import { checkSameOrigin } from '@/src/server/request-security.js';
+
+export async function POST(request, context) {
+  const originError = checkSameOrigin(request);
+  if (originError) return originError;
+  const { body, error } = await readForm(request);
+  if (error) return error;
+  if (body.get('consent') !== 'accepted') return formRedirect(request, '/login?error=consent');
+  return GET(request, context);
+}
 
 export async function GET(request, { params }) {
   const { provider } = await params;

@@ -42,6 +42,10 @@ if (originError) return originError;
     return formRedirect(request, '/setup?error=invalid');
   }
 
+  if (body.get('consent') !== 'accepted') {
+    return formRedirect(request, '/setup?error=consent');
+  }
+
   const user = await createPasswordUser({
     displayName,
     email,

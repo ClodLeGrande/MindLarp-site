@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { StaticContent } from '@/components/static-content.jsx';
 import { TrustedController } from '@/components/trusted-controller.jsx';
 import { icon } from '../html.js';
+import { supportEmail } from '../legal/index.js';
 import { chatUrl } from '../server/config.js';
 
 export const navigation = [
@@ -60,7 +61,7 @@ export async function publicLayout({ path = '/', content, bodyClass = '' }) {
       <div className="footer-grid">
         <div><span className="footer-label">/ EXPLORE</span><a href="/models">Models</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a></div>
         <div><span className="footer-label">/ DEVELOPERS</span><a href="/docs">Documentation</a><a href="/docs/api-reference">API reference</a><a href="/console">Console</a></div>
-        <div><span className="footer-label">/ COMPANY</span><a href="mailto:hello@mindlarp.ai">Contact</a><a href="/legal">Legal &amp; privacy</a><a href="/status">System status</a></div>
+        <div><span className="footer-label">/ COMPANY</span><a href="mailto:hello@mindlarp.ai">Contact</a><a href="/legal">Legal &amp; privacy</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href={`mailto:${supportEmail}`}>Support</a><a href="/status">System status</a></div>
         <div className="footer-system"><span className="footer-label">/ SYSTEM</span><span className="system-status"><span className="status-dot" /> Platform online</span><small>Made by ClodLeGrande</small></div>
       </div>
       <div className="footer-socials" aria-label="Social links">{socialLinks.map(([label, href]) => <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={`MindLarp on ${label}`}>{label} <Icon name="arrow" /></a>)}</div>
@@ -84,6 +85,7 @@ export function consoleLayout({ path, content, user, csrf }) {
         <a href="/docs" className="console-nav-link"><Icon name="arrow" /> Documentation<span className="nav-arrow">↗</span></a>
         <form method="post" action="/console/logout"><input type="hidden" name="csrf" value={csrf} /><button className="console-nav-link logout-button" type="submit"><Icon name="logout" /> Sign out</button></form>
         <div className="user-chip"><span className="avatar">{user.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{user.displayName}</strong><small>{user.email}</small></span></div>
+        <div className="console-legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href={`mailto:${supportEmail}`}>Support</a></div>
       </div>
     </aside>
     <main id="main" className="console-main">{renderContent(content)}</main>

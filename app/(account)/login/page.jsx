@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { publicLayout } from '@/src/views/layout.jsx';
-import { brandIcon, escapeHtml } from '@/src/html.js';
+import { brandIcon, consentLabel, escapeHtml } from '@/src/html.js';
 import { getCurrentAuth } from '@/src/server/auth.js';
 import { getStore } from '@/src/server/store.js';
 
@@ -17,6 +17,7 @@ export default async function Page({ searchParams }) {
     'account-exists': 'An account with this email already exists, created with a different sign-in method. Contact the workspace owner if you cannot sign in.',
     google: 'Google sign-in is not configured on this server.',
     github: 'GitHub sign-in is not configured on this server.',
+    consent: 'You must accept the Terms of Service and Privacy Policy to continue.',
   };
   const error = errors[query.error] || '';
   const content = `<section class="auth-shell">
@@ -30,10 +31,13 @@ export default async function Page({ searchParams }) {
       <h2>Sign in to MindLarp</h2>
       <p>Continue securely with a connected account.</p>
       ${error ? `<div class="alert error" role="alert">${escapeHtml(error)}</div>` : ''}
-      <div class="oauth-buttons">
-        <a class="oauth-button" href="/auth/google">${brandIcon('google')}Google</a>
-        <a class="oauth-button" href="/auth/github">${brandIcon('github')}GitHub</a>
-      </div>
+      <form class="oauth-consent-form" method="post" action="/auth/google">
+        ${consentLabel('<input type="checkbox" name="consent" value="accepted" required>')}
+        <div class="oauth-buttons">
+          <button class="oauth-button" type="submit" formaction="/auth/google">${brandIcon('google')}Google</button>
+          <button class="oauth-button" type="submit" formaction="/auth/github">${brandIcon('github')}GitHub</button>
+        </div>
+      </form>
       <p class="auth-hint">Email and password sign-in are no longer available.</p>
     </div></div>
   </section>`;

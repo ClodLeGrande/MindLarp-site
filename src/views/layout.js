@@ -1,4 +1,5 @@
 import { escapeHtml, icon } from '../html.js';
+import { supportEmail } from '../legal/index.js';
 import { chatUrl } from '../server/config.js';
 
 const navigation = [
@@ -77,7 +78,7 @@ export function publicLayout({ title, description = 'A family of AI models for c
     <div class="footer-grid">
       <div><span class="footer-label">/ EXPLORE</span><a href="/models">Models</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a></div>
       <div><span class="footer-label">/ DEVELOPERS</span><a href="/docs">Documentation</a><a href="/docs/api-reference">API reference</a><a href="/console">Console</a></div>
-      <div><span class="footer-label">/ COMPANY</span><a href="mailto:hello@mindlarp.ai">Contact</a><a href="/legal">Legal & privacy</a><a href="/status">System status</a></div>
+      <div><span class="footer-label">/ COMPANY</span><a href="mailto:hello@mindlarp.ai">Contact</a><a href="/legal">Legal & privacy</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="mailto:${supportEmail}">Support</a><a href="/status">System status</a></div>
       <div class="footer-system"><span class="footer-label">/ SYSTEM</span><span class="system-status"><span class="status-dot"></span> Platform online</span><small>Made by ClodLeGrande</small></div>
     </div>
     <div class="footer-socials" aria-label="Social links">${socials}</div>
@@ -123,6 +124,7 @@ export function consoleLayout({ title, path, content, user, csrf, nonce = '' }) 
       <a href="/docs" class="console-nav-link">${icon('arrow')} Documentation<span class="nav-arrow">↗</span></a>
       <form method="post" action="/console/logout"><input type="hidden" name="csrf" value="${csrf}"><button class="console-nav-link logout-button" type="submit">${icon('logout')} Sign out</button></form>
       <div class="user-chip"><span class="avatar">${escapeHtml(user.displayName.slice(0, 1).toUpperCase())}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>${escapeHtml(user.email)}</small></span></div>
+      <div class="console-legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="mailto:${supportEmail}">Support</a></div>
     </div>
   </aside>
   <main id="main" class="console-main">${content}</main>

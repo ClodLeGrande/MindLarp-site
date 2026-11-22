@@ -14,6 +14,7 @@ export async function POST(request) {
   const stripe = getStripe();
   const options = { user, csrf: session.csrf, path: '/console/billing' };
   if (!billingConfigured()) return htmlResponse(billingContent({ user, csrf: session.csrf, configured: false }), 'Billing', 503, options);
+  if (body.get('consent') !== 'accepted') return htmlResponse(billingContent({ user, csrf: session.csrf, configured: true, error: 'You must accept the Terms of Service and Privacy Policy to continue.' }), 'Billing', 400, options);
   try {
     const checkout = await stripe.checkout.sessions.create({ mode: 'subscription', line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }], client_reference_id: user.id, customer: user.billing?.stripeCustomerId || undefined, customer_email: user.billing?.stripeCustomerId ? undefined : user.email, success_url: `${publicUrl(new URL(request.url).origin)}/console/billing?checkout=success`, cancel_url: `${publicUrl(new URL(request.url).origin)}/console/billing?checkout=cancelled`, metadata: { userId: user.id }, subscription_data: { metadata: { userId: user.id } } });
     if (!checkout.url) throw new Error('Stripe did not return a checkout URL.');

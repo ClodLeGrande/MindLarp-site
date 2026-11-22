@@ -5,6 +5,8 @@ The website, documentation, and developer console for the MindLarp model family 
 ## Features
 
 - Responsive public website with model pages, pricing, changelog, status, and legal pages.
+- Bilingual legal documents: `/privacy` and `/terms` (English) plus `/ru/privacy` and `/ru/terms` (Russian), with a language switcher, support contact, and a plan-price appendix in the User Agreement. Texts live in `src/legal/`.
+- Plan prices show an indicative ruble equivalent (`$19 · ≈1 710 ₽`) next to USD; billing is always charged in USD. Registration and checkout require accepting the legal documents.
 - English documentation and an OpenAI-compatible API reference.
 - SEO metadata, Open Graph, JSON-LD, `robots.txt`, sitemap, and web manifest.
 - OpenAI-compatible inference API; chat buttons link to your own external interface via `CHAT_URL` (the built-in chat page was removed).
@@ -74,6 +76,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `PORT` | No | HTTP port; development default is `5173`. |
 | `PUBLIC_URL` | Production | Public origin without a trailing slash. Used for OAuth callbacks, reset links, canonical URLs, and Stripe redirects. |
 | `CHAT_URL` | No | Absolute HTTP(S) URL of your external chat interface. When set, the console sidebar shows a Chat link to it and public “Start chat” buttons point there; otherwise those buttons lead to the console. |
+| `USD_TO_RUB` | No | Indicative USD→RUB rate for the ruble equivalents shown next to plan prices; defaults to `90`. Billing is always charged in USD. The rate is read in one place (`src/money.js`). |
 | `DATABASE_URL` | For PostgreSQL | Application PostgreSQL connection. When set, it takes precedence over JSON storage. Use a pooler for hosted Supabase. |
 | `DIRECT_URL` | Recommended | Direct PostgreSQL connection used by migration and import commands. Falls back to `DATABASE_URL`. |
 | `DATABASE_POOL_SIZE` | No | Maximum PostgreSQL connections per Node.js process; defaults to `10`. Multiply it by the replica count when sizing PostgreSQL. |
