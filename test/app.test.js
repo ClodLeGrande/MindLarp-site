@@ -14,7 +14,7 @@ const password = 'a-very-good-password';
 const root = resolve(import.meta.dirname, '..');
 const configurationKeys = [
   'MINDLARP_UPSTREAM_URL', 'MINDLARP_UPSTREAM_KEY', 'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET',
+  'GOOGLE_CLIENT_SECRET', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET',
   'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET',
   'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_REQUIRE_TLS', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM',
   'ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION', 'INFERENCE_DAILY_REQUEST_LIMIT', 'ALLOW_HTTP_UPSTREAM',
@@ -383,21 +383,21 @@ test('email/password login and registration remain disabled while logout works',
   assert.match(loginHtml, /name="consent" value="accepted" required/);
 });
 
-test('Google and GitHub OAuth report missing configuration or redirect with protected state', async (t) => {
+test('Google, GitHub, and Discord OAuth report missing configuration or redirect with protected state', async (t) => {
   const unconfigured = await startApp(t);
-  const unconfiguredResponse = await fetch(`${unconfigured.origin}/auth/google`);
+  const unconfiguredResponse = await fetch(`${unconfigured.origin}/auth/discord`);
   assert.equal(unconfiguredResponse.status, 503);
   const unconfiguredHtml = await unconfiguredResponse.text();
   assert.match(unconfiguredHtml, /href="\/auth\/google"><svg viewBox="0 0 48 48"/);
-  assert.match(unconfiguredHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);
-  const configured = await startApp(t, { env: { GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'secret', GITHUB_CLIENT_ID: 'github-id', GITHUB_CLIENT_SECRET: 'github-secret', PUBLIC_URL: 'https://mindlarp.test' } });
-  for (const provider of ['google', 'github']) {
+  assert.match(unconfiguredHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);\n  assert.match(unconfiguredHtml, /href="\/auth\/discord"><svg viewBox="0 0 24 24"/);
+  const configured = await startApp(t, { env: { GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'secret', GITHUB_CLIENT_ID: 'github-id', GITHUB_CLIENT_SECRET: 'github-secret', DISCORD_CLIENT_ID: 'discord-id', DISCORD_CLIENT_SECRET: 'discord-secret', PUBLIC_URL: 'https://mindlarp.test' } });
+  for (const provider of ['google', 'github', 'discord']) {
     const response = await fetch(`${configured.origin}/auth/${provider}`, { redirect: 'manual' });
     assert.equal(response.status, 302);
     const location = new URL(response.headers.get('location'));
-    assert.equal(location.hostname, provider === 'google' ? 'accounts.google.com' : 'github.com');
+    assert.equal(location.hostname, provider === 'google' ? 'accounts.google.com' : provider === 'github' ? 'github.com' : 'discord.com');
     assert.equal(location.searchParams.get('state').length > 20, true);
-    if (provider === 'google') assert.equal(location.searchParams.get('code_challenge_method'), 'S256');
+    if (provider === 'google') assert.equal(location.searchParams.get('code_challenge_method'), 'S256');\n    if (provider === 'discord') assert.equal(location.searchParams.get('scope'), 'identify email');
     assert.match(response.headers.get('set-cookie'), /HttpOnly/i);
   }
 });
