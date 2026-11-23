@@ -380,6 +380,7 @@ test('email/password login and registration remain disabled while logout works',
   const loginHtml = await (await fetch(`${origin}/login`)).text();
   assert.match(loginHtml, /formaction="\/auth\/google"><svg viewBox="0 0 48 48"/);
   assert.match(loginHtml, /formaction="\/auth\/github"><svg viewBox="0 0 16 16"/);
+  assert.match(loginHtml, /formaction="\/auth\/discord"><svg viewBox="0 0 24 24"/);
   assert.match(loginHtml, /name="consent" value="accepted" required/);
 });
 
@@ -589,6 +590,8 @@ test('OAuth links verified emails to existing accounts and rejects unverified on
     env: {
       GOOGLE_CLIENT_ID: 'client-id',
       GOOGLE_CLIENT_SECRET: 'secret',
+      DISCORD_CLIENT_ID: 'discord-id',
+      DISCORD_CLIENT_SECRET: 'discord-secret',
       NODE_OPTIONS: `--import ${mockModule}`,
     },
   });
@@ -625,6 +628,39 @@ test('OAuth links verified emails to existing accounts and rejects unverified on
   data = await readData();
   assert.equal(data.users.length, 2);
   assert.deepEqual(data.users[1].identities, [{ provider: 'google', providerId: 'google-oauth' }]);
+
+  async function completeDiscord(code) {
+    const begin = await fetch(`${origin}/auth/discord`, { redirect: 'manual' });
+    assert.equal(begin.status, 302);
+    const state = new URL(begin.headers.get('location')).searchParams.get('state');
+    const cookie = begin.headers.get('set-cookie').split(';')[0];
+    return fetch(`${origin}/auth/discord/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual',
+    });
+  }
+
+  response = await completeDiscord('victim');
+  assert.equal(response.headers.get('location'), '/console');
+  data = await readData();
+  assert.equal(data.users.length, 2);
+  assert.deepEqual(data.users[0].identities, [
+    { provider: 'google', providerId: 'google-victim' },
+    { provider: 'discord', providerId: 'discord-victim' },
+  ]);
+
+  response = await completeDiscord('unverified');
+  assert.match(response.headers.get('location'), /\\/login\\?error=oauth$/);
+  data = await readData();
+  assert.equal(data.users[0].identities.length, 2);
+
+  response = await completeDiscord('oauth');
+  assert.equal(response.headers.get('location'), '/console');
+  data = await readData();
+  assert.deepEqual(data.users[1].identities, [
+    { provider: 'google', providerId: 'google-oauth' },
+    { provider: 'discord', providerId: 'discord-oauth' },
+  ]);
 });
 
 test('API key creation is capped at ten active keys per account', async (t) => {

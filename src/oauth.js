@@ -72,8 +72,8 @@ export async function completeOAuth(provider, url, encoded) {
     client_secret: config.secret,
     code: url.searchParams.get('code'),
     redirect_uri: redirectUri,
-    grant_type: 'authorization_code',
   });
+  if (provider !== 'github') tokenParams.set('grant_type', 'authorization_code');
   if (provider === 'google') tokenParams.set('code_verifier', payload.verifier);
   const tokenResponse = await fetch(config.redirect, {
     method: 'POST',
