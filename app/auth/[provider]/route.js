@@ -5,9 +5,6 @@ import { htmlResponse } from '@/src/server/html.jsx';
 import { formRedirect, readForm } from '@/src/server/responses.js';
 import { checkSameOrigin } from '@/src/server/request-security.js';
 
-const providers = ['google', 'github', 'discord'];
-const providerLabel = { google: 'Google', github: 'GitHub', discord: 'Discord' };
-
 export async function POST(request, context) {
   const originError = checkSameOrigin(request);
   if (originError) return originError;
@@ -19,10 +16,10 @@ export async function POST(request, context) {
 
 export async function GET(request, { params }) {
   const { provider } = await params;
-  if (!providers.includes(provider)) return new Response('Not found', { status: 404 });
+  if (!['google', 'github'].includes(provider)) return new Response('Not found', { status: 404 });
   const oauth = beginOAuth(provider);
   if (!oauth) {
-    const error = `${providerLabel[provider]} sign-in is not configured on this server.`;
+    const error = `${provider === 'google' ? 'Google' : 'GitHub'} sign-in is not configured on this server.`;
     const content = `<section class="auth-shell">
     <div class="auth-aside">
       <a href="/" class="auth-back">← Back to MindLarp</a>
@@ -37,7 +34,6 @@ export async function GET(request, { params }) {
       <div class="oauth-buttons">
         <a class="oauth-button" href="/auth/google">${brandIcon('google')}Google</a>
         <a class="oauth-button" href="/auth/github">${brandIcon('github')}GitHub</a>
-        <a class="oauth-button" href="/auth/discord">${brandIcon('discord')}Discord</a>
       </div>
       <p class="auth-hint">Email and password sign-in are no longer available.</p>
     </div></div>

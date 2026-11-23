@@ -389,7 +389,8 @@ test('Google, GitHub, and Discord OAuth report missing configuration or redirect
   assert.equal(unconfiguredResponse.status, 503);
   const unconfiguredHtml = await unconfiguredResponse.text();
   assert.match(unconfiguredHtml, /href="\/auth\/google"><svg viewBox="0 0 48 48"/);
-  assert.match(unconfiguredHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);\n  assert.match(unconfiguredHtml, /href="\/auth\/discord"><svg viewBox="0 0 24 24"/);
+  assert.match(unconfiguredHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);
+  assert.match(unconfiguredHtml, /href="\/auth\/discord"><svg viewBox="0 0 24 24"/);
   const configured = await startApp(t, { env: { GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'secret', GITHUB_CLIENT_ID: 'github-id', GITHUB_CLIENT_SECRET: 'github-secret', DISCORD_CLIENT_ID: 'discord-id', DISCORD_CLIENT_SECRET: 'discord-secret', PUBLIC_URL: 'https://mindlarp.test' } });
   for (const provider of ['google', 'github', 'discord']) {
     const response = await fetch(`${configured.origin}/auth/${provider}`, { redirect: 'manual' });
@@ -397,7 +398,8 @@ test('Google, GitHub, and Discord OAuth report missing configuration or redirect
     const location = new URL(response.headers.get('location'));
     assert.equal(location.hostname, provider === 'google' ? 'accounts.google.com' : provider === 'github' ? 'github.com' : 'discord.com');
     assert.equal(location.searchParams.get('state').length > 20, true);
-    if (provider === 'google') assert.equal(location.searchParams.get('code_challenge_method'), 'S256');\n    if (provider === 'discord') assert.equal(location.searchParams.get('scope'), 'identify email');
+    if (provider === 'google') assert.equal(location.searchParams.get('code_challenge_method'), 'S256');
+    if (provider === 'discord') assert.equal(location.searchParams.get('scope'), 'identify email');
     assert.match(response.headers.get('set-cookie'), /HttpOnly/i);
   }
 });

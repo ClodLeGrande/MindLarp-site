@@ -97,7 +97,9 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `GOOGLE_CLIENT_ID` | For Google login | Google OAuth client ID. |
 | `GOOGLE_CLIENT_SECRET` | For Google login | Google OAuth client secret. |
 | `GITHUB_CLIENT_ID` | For GitHub login | GitHub OAuth client ID. |
-| `GITHUB_CLIENT_SECRET` | For GitHub login | GitHub OAuth client secret. |\n| `DISCORD_CLIENT_ID` | For Discord login | Discord OAuth2 application client ID. |\n| `DISCORD_CLIENT_SECRET` | For Discord login | Discord OAuth2 application client secret. |
+| `GITHUB_CLIENT_SECRET` | For GitHub login | GitHub OAuth client secret. |
+| `DISCORD_CLIENT_ID` | For Discord login | Discord OAuth2 application client ID. |
+| `DISCORD_CLIENT_SECRET` | For Discord login | Discord OAuth2 application client secret. |
 | `STRIPE_SECRET_KEY` | For billing | Stripe secret API key. |
 | `STRIPE_PRICE_ID` | For billing | ID of a recurring Stripe Price. |
 | `STRIPE_WEBHOOK_SECRET` | For billing | Signing secret for the Stripe webhook endpoint. |
@@ -174,14 +176,16 @@ curl http://localhost:5173/v1/chat/completions \
 
 ## Google and GitHub login
 
-Create separate OAuth applications with these callback URLs, replacing the origin with `PUBLIC_URL`:\n\n- Discord: `https://YOUR_DOMAIN/auth/discord/callback`
+Create separate OAuth applications with these callback URLs, replacing the origin with `PUBLIC_URL`:
+
+- Discord: `https://YOUR_DOMAIN/auth/discord/callback`
 
 ```text
 http://localhost:5173/auth/google/callback
 http://localhost:5173/auth/github/callback
 ```
 
-For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. For Discord, create an application in the Discord Developer Portal, add the redirect URL above under OAuth2, and grant the `identify` and `email` scopes. OAuth routes return `503` while a provider is unconfigured. Identities are matched by provider ID first. If no identity matches, a provider-verified email (Google `email_verified`, GitHub verified primary email, Discord `verified` email) is linked to the existing account with that email, so owner accounts created via `/setup` can sign in with Google or GitHub. Unverified provider emails are rejected before any account lookup.
+For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. For Discord, create an application in the Discord Developer Portal, add the redirect URL above under OAuth2, and grant the `identify` and `email` scopes. OAuth routes return `503` while a provider is unconfigured. Identities are matched by provider ID first. If no identity matches, a provider-verified email (Google `email_verified`, GitHub verified primary email, Discord `verified` email) is linked to the existing account with that email, so owner accounts created via `/setup` can sign in with Google, GitHub, or Discord. Unverified provider emails are rejected before any account lookup.
 
 ## Stripe billing
 
