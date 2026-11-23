@@ -650,7 +650,7 @@ test('OAuth links verified emails to existing accounts and rejects unverified on
   ]);
 
   response = await completeDiscord('unverified');
-  assert.match(response.headers.get('location'), /\\/login\\?error=oauth$/);
+  assert.match(response.headers.get('location'), /\/login\?error=oauth$/);
   data = await readData();
   assert.equal(data.users[0].identities.length, 2);
 
