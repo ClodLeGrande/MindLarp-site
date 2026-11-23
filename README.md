@@ -10,7 +10,7 @@ The website, documentation, and developer console for the MindLarp model family 
 - English documentation and an OpenAI-compatible API reference.
 - SEO metadata, Open Graph, JSON-LD, `robots.txt`, sitemap, and web manifest.
 - OpenAI-compatible inference API; chat buttons link to your own external interface via `CHAT_URL` (the built-in chat page was removed).
-- OAuth-only sign-in with Google and GitHub (PKCE where supported); email/password login, registration, and password recovery are disabled.
+- OAuth-only sign-in with Google, GitHub, and Discord (PKCE for Google); email/password login, registration, and password recovery are disabled.
 - Console with scoped API keys, usage reporting, profile settings, and billing.
 - Stripe Checkout, Customer Portal, and signed subscription webhooks.
 - PostgreSQL persistence with migrations, transactions, constraints, indexes, and row-level security.
@@ -41,7 +41,7 @@ Open [http://localhost:5173](http://localhost:5173). PostgreSQL listens only on 
 
 On a new installation, visit `/setup` and create the owner account. After that:
 
-- `/login` signs users in with Google or GitHub OAuth (the only sign-in method).
+- `/login` signs users in with Google, GitHub, or Discord OAuth (the only sign-in method).
 - `/register`, `/forgot-password`, and `/reset-password` redirect to `/login`; the password endpoints return `410`.
 - Chat buttons (console sidebar and public CTAs) link to your external interface when `CHAT_URL` is set; otherwise they lead to the console.
 - `/console` manages keys, usage, billing, and settings.
@@ -98,6 +98,8 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `GOOGLE_CLIENT_SECRET` | For Google login | Google OAuth client secret. |
 | `GITHUB_CLIENT_ID` | For GitHub login | GitHub OAuth client ID. |
 | `GITHUB_CLIENT_SECRET` | For GitHub login | GitHub OAuth client secret. |
+| `DISCORD_CLIENT_ID` | For Discord login | Discord OAuth2 application client ID. |
+| `DISCORD_CLIENT_SECRET` | For Discord login | Discord OAuth2 application client secret. |
 | `STRIPE_SECRET_KEY` | For billing | Stripe secret API key. |
 | `STRIPE_PRICE_ID` | For billing | ID of a recurring Stripe Price. |
 | `STRIPE_WEBHOOK_SECRET` | For billing | Signing secret for the Stripe webhook endpoint. |
@@ -176,12 +178,14 @@ curl http://localhost:5173/v1/chat/completions \
 
 Create separate OAuth applications with these callback URLs, replacing the origin with `PUBLIC_URL`:
 
+- Discord: `https://YOUR_DOMAIN/auth/discord/callback`
+
 ```text
 http://localhost:5173/auth/google/callback
 http://localhost:5173/auth/github/callback
 ```
 
-For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. OAuth routes return `503` while a provider is unconfigured. Identities are matched by provider ID first. If no identity matches, a provider-verified email (Google `email_verified`, GitHub verified primary email) is linked to the existing account with that email, so owner accounts created via `/setup` can sign in with Google or GitHub. Unverified provider emails are rejected before any account lookup.
+For Google, configure an OAuth **Web application** in Google Cloud Console. For GitHub, create an OAuth App. For Discord, create an application in the Discord Developer Portal, add the redirect URL above under OAuth2, and grant the `identify` and `email` scopes. OAuth routes return `503` while a provider is unconfigured. Identities are matched by provider ID first. If no identity matches, a provider-verified email (Google `email_verified`, GitHub verified primary email, Discord `verified` email) is linked to the existing account with that email, so owner accounts created via `/setup` can sign in with Google, GitHub, or Discord. Unverified provider emails are rejected before any account lookup.
 
 ## Stripe billing
 
@@ -285,7 +289,7 @@ test/                    HTTP and real PostgreSQL integration tests
 - Put Node.js behind a reverse proxy with request limits and timeouts. The proxy must terminate public access to direct Node/PostgreSQL ports and overwrite client-supplied `X-Real-IP`/`X-Forwarded-For` before `TRUST_PROXY=true` is enabled.
 - Add a shared Redis/PostgreSQL-backed rate limiter before horizontal or high-risk public launch. The built-in limiter is process-local and is only a single-instance safeguard.
 - Treat PostgreSQL scaling as a launch gate: the current store refreshes and serializes broad application state. Run a realistic load test and keep one application replica until the data path is refactored into targeted SQL queries.
-- Create the owner through `/setup` before opening traffic. Sign-in is OAuth-only; configure Google and GitHub credentials and decide whether open OAuth signup is acceptable or invitation controls are needed for a closed launch.
+- Create the owner through `/setup` before opening traffic. Sign-in is OAuth-only; configure Google, GitHub, and Discord credentials and decide whether open OAuth signup is acceptable or invitation controls are needed for a closed launch.
 - Configure model aliases, provider-side budgets/quotas, `INFERENCE_DAILY_REQUEST_LIMIT`, and either Stripe subscriptions or an explicit non-billing inference override. Do not present quota accounting as metered invoicing.
 - Define usage retention and deletion policies and review the placeholder legal page.
 - Review all model, price, status, trusted-company, and social-link content before launch.

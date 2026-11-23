@@ -17,6 +17,7 @@ export default async function Page({ searchParams }) {
     'account-exists': 'An account with this email already exists, created with a different sign-in method. Contact the workspace owner if you cannot sign in.',
     google: 'Google sign-in is not configured on this server.',
     github: 'GitHub sign-in is not configured on this server.',
+    discord: 'Discord sign-in is not configured on this server.',
     consent: 'You must accept the Terms of Service and Privacy Policy to continue.',
   };
   const error = errors[query.error] || '';
@@ -36,6 +37,7 @@ export default async function Page({ searchParams }) {
         <div class="oauth-buttons">
           <button class="oauth-button" type="submit" formaction="/auth/google">${brandIcon('google')}Google</button>
           <button class="oauth-button" type="submit" formaction="/auth/github">${brandIcon('github')}GitHub</button>
+          <button class="oauth-button" type="submit" formaction="/auth/discord">${brandIcon('discord')}Discord</button>
         </div>
       </form>
       <p class="auth-hint">Email and password sign-in are no longer available.</p>
