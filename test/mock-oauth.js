@@ -18,5 +18,21 @@ globalThis.fetch = async (input, init = {}) => {
     });
   }
 
+  if (url.hostname === 'discord.com' && url.pathname === '/api/oauth2/token') {
+    const code = new URLSearchParams(init.body).get('code') || 'oauth';
+    return Response.json({ access_token: `mock-discord-${code}`, token_type: 'Bearer' });
+  }
+
+  if (url.hostname === 'discord.com' && url.pathname === '/api/users/@me') {
+    const token = String(init.headers?.Authorization || '').replace('Bearer mock-discord-', '') || 'oauth';
+    return Response.json({
+      id: `discord-${token}`,
+      email: token === 'unverified' ? 'victim@example.com' : `${token}@example.com`,
+      verified: token !== 'unverified',
+      username: `${token}-discord`,
+      global_name: `${token} Discord User`,
+    });
+  }
+
   return originalFetch(input, init);
 };
