@@ -18,7 +18,7 @@ const socialLinks = [
 ];
 
 export function brand() {
-  return '<span class="brand-mark" aria-hidden="true"><img src="/assets/logo.png" alt="" width="434" height="298"></span><span class="brand-word">mindlarp<span class="brand-cursor">_</span></span>';
+  return '<span class="brand-mark" aria-hidden="true"><img src="/mindlarp-mark.svg" alt="" width="434" height="298"></span><span class="brand-word">mindlarp<span class="brand-cursor">_</span></span>';
 }
 
 export function publicLayout({ title, description = 'A family of AI models for clear thinking and ambitious ideas.', path = '/', content, bodyClass = '', nonce = '' }) {
@@ -32,7 +32,7 @@ export function publicLayout({ title, description = 'A family of AI models for c
   const socials = socialLinks.map(([label, href]) => `<a href="${href}" target="_blank" rel="noreferrer" aria-label="MindLarp on ${label}">${label} ${icon('arrow')}</a>`).join('');
   const structuredData = JSON.stringify({
     '@context': 'https://schema.org', '@type': 'Organization', name: 'MindLarp', url: siteUrl,
-    logo: `${siteUrl}/assets/logo.png`, parentOrganization: { '@type': 'Organization', name: 'ClodLeGrande' },
+    logo: `${siteUrl}/mindlarp-mark.svg`, parentOrganization: { '@type': 'Organization', name: 'ClodLeGrande' },
     sameAs: socialLinks.map(([, href]) => href),
   });
 
@@ -58,7 +58,7 @@ export function publicLayout({ title, description = 'A family of AI models for c
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${siteUrl}/assets/og.svg">
   <title>${escapeHtml(title)} · MindLarp</title>
-  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="icon" href="/mindlarp-mark.svg" type="image/png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/assets/style.css">
   <script type="application/ld+json" nonce="${nonce}">${structuredData}</script>
@@ -110,7 +110,7 @@ export function consoleLayout({ title, path, content, user, csrf, nonce = '' }) 
   <meta name="theme-color" content="#07070d">
   <meta name="robots" content="noindex, nofollow">
   <title>${escapeHtml(title)} · MindLarp Console</title>
-  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="icon" href="/mindlarp-mark.svg" type="image/png">
   <link rel="stylesheet" href="/assets/style.css">
   <script type="module" src="/bootstrap.js" nonce="${nonce}"></script>
 </head>

@@ -25,7 +25,7 @@ export function Icon({ name, className = '' }) {
 }
 
 export function Brand() {
-  return <><span className="brand-mark" aria-hidden="true"><img src="/assets/logo.png" alt="" width="434" height="298" /></span><span className="brand-word">mindlarp<span className="brand-cursor">_</span></span></>;
+  return <><span className="brand-mark" aria-hidden="true"><img src="/mindlarp-mark.svg" alt="" width="434" height="298" /></span><span className="brand-word">mindlarp<span className="brand-cursor">_</span></span></>;
 }
 
 function renderContent(content) {
@@ -37,7 +37,7 @@ export async function publicLayout({ path = '/', content, bodyClass = '' }) {
   const siteUrl = (process.env.PUBLIC_URL || 'https://mindlarp.ai').replace(/\/$/, '');
   const structuredData = JSON.stringify({
     '@context': 'https://schema.org', '@type': 'Organization', name: 'MindLarp', url: siteUrl,
-    logo: `${siteUrl}/assets/logo.png`, parentOrganization: { '@type': 'Organization', name: 'ClodLeGrande' },
+    logo: `${siteUrl}/mindlarp-mark.svg`, parentOrganization: { '@type': 'Organization', name: 'ClodLeGrande' },
     sameAs: socialLinks.map(([, href]) => href),
   }).replaceAll('<', '\\u003c');
 
