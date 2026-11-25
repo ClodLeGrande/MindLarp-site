@@ -6,3 +6,5 @@ coverage
 public/assets
 public/vendor
 *.min.js
+
+.github/**
