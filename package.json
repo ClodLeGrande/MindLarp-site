@@ -17,8 +17,8 @@
     "check:production": "node --env-file-if-exists=.env scripts/check-production.js",
     "test": "npm run build && node --test",
     "check": "shopt -s globstar nullglob && for file in proxy.js next.config.mjs src/**/*.js app/**/*.js components/**/*.js public/*.js scripts/**/*.js test/**/*.js; do node --check \"$file\" || exit 1; done",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format": "npx --yes prettier@3.6.2 --write .",
+    "format:check": "npx --yes prettier@3.6.2 --check ."
   },
   "dependencies": {
     "gsap": "^3.15.1",
@@ -29,8 +29,5 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "stripe": "^23.1.0"
-  },
-  "devDependencies": {
-    "prettier": "^3.6.2"
   }
 }
