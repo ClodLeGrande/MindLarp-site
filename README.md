@@ -69,41 +69,41 @@ The production server defaults to port `3000`; set `PORT=5173` to keep the devel
 
 Next.js loads configuration from `.env`. The migration commands also read `.env` when present. Never commit `.env` or real credentials; `.env.example` contains local development values and empty production placeholders.
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `NODE_ENV` | No | Use `production` to enable secure session cookies. |
-| `HOST` | No | Listen address; defaults to `0.0.0.0`. |
-| `PORT` | No | HTTP port; development default is `5173`. |
-| `PUBLIC_URL` | Production | Public origin without a trailing slash. Used for OAuth callbacks, reset links, canonical URLs, and Stripe redirects. |
-| `CHAT_URL` | No | Absolute HTTP(S) URL of your external chat interface. When set, the console sidebar shows a Chat link to it and public “Start chat” buttons point there; otherwise those buttons lead to the console. |
-| `USD_TO_RUB` | No | Indicative USD→RUB rate for the ruble equivalents shown next to plan prices; defaults to `90`. Billing is always charged in USD. The rate is read in one place (`src/money.js`). |
-| `DATABASE_URL` | For PostgreSQL | Application PostgreSQL connection. When set, it takes precedence over JSON storage. Use a pooler for hosted Supabase. |
-| `DIRECT_URL` | Recommended | Direct PostgreSQL connection used by migration and import commands. Falls back to `DATABASE_URL`. |
-| `DATABASE_POOL_SIZE` | No | Maximum PostgreSQL connections per Node.js process; defaults to `10`. Multiply it by the replica count when sizing PostgreSQL. |
-| `DATABASE_QUERY_TIMEOUT`, `DATABASE_STATEMENT_TIMEOUT`, `DATABASE_LOCK_TIMEOUT` | No | Millisecond limits; default to `15000`, `15000`, and `5000`. Use larger migration-role values only when a schema change requires them. |
-| `DATABASE_SSL` | No | Set `true` when the server requires TLS. Local Docker does not require it. |
-| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No | Defaults to `true`; disabling certificate verification is rejected by production validation. |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | No | Local Docker database settings; defaults are development-only `postgres` values. |
-| `POSTGRES_PORT` | No | Local host port; defaults to `54322`. |
-| `DATA_FILE` | JSON fallback | JSON path when `DATABASE_URL` is empty; defaults to `./data/mindlarp.json`. |
-| `SUPABASE_URL` | Future integration | Supabase project URL, reserved for server-side integration. |
-| `SUPABASE_PUBLISHABLE_KEY` | Future integration | Publishable key for a future explicitly designed browser integration; currently unused. |
-| `SUPABASE_SECRET_KEY` | Future integration | Secret key for server-side Supabase APIs; never expose it to the browser. |
-| `MINDLARP_UPSTREAM_URL` | For inference | OpenAI-compatible base URL, for example `https://provider.example/v1`. External production endpoints must use HTTPS. |
-| `MINDLARP_UPSTREAM_KEY` | If required | Bearer token sent to the inference provider. |
-| `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION` | No | Explicit development/private-deployment bypass for subscription checks. In production, either leave this unset and configure Stripe or set it deliberately for a trusted non-billing deployment. |
-| `INFERENCE_DAILY_REQUEST_LIMIT` | For production inference | Positive account-level daily request quota shared across API keys; production validation requires it whenever inference is enabled. |
-| `ALLOW_HTTP_UPSTREAM` | No | Explicitly allow a non-local HTTP upstream only on a trusted private network. HTTPS is required otherwise. |
-| `GOOGLE_CLIENT_ID` | For Google login | Google OAuth client ID. |
-| `GOOGLE_CLIENT_SECRET` | For Google login | Google OAuth client secret. |
-| `GITHUB_CLIENT_ID` | For GitHub login | GitHub OAuth client ID. |
-| `GITHUB_CLIENT_SECRET` | For GitHub login | GitHub OAuth client secret. |
-| `DISCORD_CLIENT_ID` | For Discord login | Discord OAuth2 application client ID. |
-| `DISCORD_CLIENT_SECRET` | For Discord login | Discord OAuth2 application client secret. |
-| `STRIPE_SECRET_KEY` | For billing | Stripe secret API key. |
-| `STRIPE_PRICE_ID` | For billing | ID of a recurring Stripe Price. |
-| `STRIPE_WEBHOOK_SECRET` | For billing | Signing secret for the Stripe webhook endpoint. |
-| `SMTP_*` | Reserved | SMTP settings are validated but currently unused: password recovery is disabled under OAuth-only sign-in. |
+| Variable                                                                        | Required                 | Description                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                                                                      | No                       | Use `production` to enable secure session cookies.                                                                                                                                                    |
+| `HOST`                                                                          | No                       | Listen address; defaults to `0.0.0.0`.                                                                                                                                                                |
+| `PORT`                                                                          | No                       | HTTP port; development default is `5173`.                                                                                                                                                             |
+| `PUBLIC_URL`                                                                    | Production               | Public origin without a trailing slash. Used for OAuth callbacks, reset links, canonical URLs, and Stripe redirects.                                                                                  |
+| `CHAT_URL`                                                                      | No                       | Absolute HTTP(S) URL of your external chat interface. When set, the console sidebar shows a Chat link to it and public “Start chat” buttons point there; otherwise those buttons lead to the console. |
+| `USD_TO_RUB`                                                                    | No                       | Indicative USD→RUB rate for the ruble equivalents shown next to plan prices; defaults to `90`. Billing is always charged in USD. The rate is read in one place (`src/money.js`).                      |
+| `DATABASE_URL`                                                                  | For PostgreSQL           | Application PostgreSQL connection. When set, it takes precedence over JSON storage. Use a pooler for hosted Supabase.                                                                                 |
+| `DIRECT_URL`                                                                    | Recommended              | Direct PostgreSQL connection used by migration and import commands. Falls back to `DATABASE_URL`.                                                                                                     |
+| `DATABASE_POOL_SIZE`                                                            | No                       | Maximum PostgreSQL connections per Node.js process; defaults to `10`. Multiply it by the replica count when sizing PostgreSQL.                                                                        |
+| `DATABASE_QUERY_TIMEOUT`, `DATABASE_STATEMENT_TIMEOUT`, `DATABASE_LOCK_TIMEOUT` | No                       | Millisecond limits; default to `15000`, `15000`, and `5000`. Use larger migration-role values only when a schema change requires them.                                                                |
+| `DATABASE_SSL`                                                                  | No                       | Set `true` when the server requires TLS. Local Docker does not require it.                                                                                                                            |
+| `DATABASE_SSL_REJECT_UNAUTHORIZED`                                              | No                       | Defaults to `true`; disabling certificate verification is rejected by production validation.                                                                                                          |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`                             | No                       | Local Docker database settings; defaults are development-only `postgres` values.                                                                                                                      |
+| `POSTGRES_PORT`                                                                 | No                       | Local host port; defaults to `54322`.                                                                                                                                                                 |
+| `DATA_FILE`                                                                     | JSON fallback            | JSON path when `DATABASE_URL` is empty; defaults to `./data/mindlarp.json`.                                                                                                                           |
+| `SUPABASE_URL`                                                                  | Future integration       | Supabase project URL, reserved for server-side integration.                                                                                                                                           |
+| `SUPABASE_PUBLISHABLE_KEY`                                                      | Future integration       | Publishable key for a future explicitly designed browser integration; currently unused.                                                                                                               |
+| `SUPABASE_SECRET_KEY`                                                           | Future integration       | Secret key for server-side Supabase APIs; never expose it to the browser.                                                                                                                             |
+| `MINDLARP_UPSTREAM_URL`                                                         | For inference            | OpenAI-compatible base URL, for example `https://provider.example/v1`. External production endpoints must use HTTPS.                                                                                  |
+| `MINDLARP_UPSTREAM_KEY`                                                         | If required              | Bearer token sent to the inference provider.                                                                                                                                                          |
+| `ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION`                                          | No                       | Explicit development/private-deployment bypass for subscription checks. In production, either leave this unset and configure Stripe or set it deliberately for a trusted non-billing deployment.      |
+| `INFERENCE_DAILY_REQUEST_LIMIT`                                                 | For production inference | Positive account-level daily request quota shared across API keys; production validation requires it whenever inference is enabled.                                                                   |
+| `ALLOW_HTTP_UPSTREAM`                                                           | No                       | Explicitly allow a non-local HTTP upstream only on a trusted private network. HTTPS is required otherwise.                                                                                            |
+| `GOOGLE_CLIENT_ID`                                                              | For Google login         | Google OAuth client ID.                                                                                                                                                                               |
+| `GOOGLE_CLIENT_SECRET`                                                          | For Google login         | Google OAuth client secret.                                                                                                                                                                           |
+| `GITHUB_CLIENT_ID`                                                              | For GitHub login         | GitHub OAuth client ID.                                                                                                                                                                               |
+| `GITHUB_CLIENT_SECRET`                                                          | For GitHub login         | GitHub OAuth client secret.                                                                                                                                                                           |
+| `DISCORD_CLIENT_ID`                                                             | For Discord login        | Discord OAuth2 application client ID.                                                                                                                                                                 |
+| `DISCORD_CLIENT_SECRET`                                                         | For Discord login        | Discord OAuth2 application client secret.                                                                                                                                                             |
+| `STRIPE_SECRET_KEY`                                                             | For billing              | Stripe secret API key.                                                                                                                                                                                |
+| `STRIPE_PRICE_ID`                                                               | For billing              | ID of a recurring Stripe Price.                                                                                                                                                                       |
+| `STRIPE_WEBHOOK_SECRET`                                                         | For billing              | Signing secret for the Stripe webhook endpoint.                                                                                                                                                       |
+| `SMTP_*`                                                                        | Reserved                 | SMTP settings are validated but currently unused: password recovery is disabled under OAuth-only sign-in.                                                                                             |
 
 Do not expose server environment values in browser JavaScript. Console API keys authenticate MindLarp users; `MINDLARP_UPSTREAM_KEY` authenticates this server with its inference provider.
 
@@ -210,11 +210,11 @@ Checkout and Customer Portal are available from `/console/billing`. Webhook sign
 
 The site ships three monthly plans, defined in `src/content.js`:
 
-| Plan | Price | Default daily request limit |
-| --- | --- | --- |
-| Pro | $19/mo | 500 |
-| Plus | $79/mo | 2,500 |
-| Studio | $199/mo | 10,000 |
+| Plan   | Price   | Default daily request limit |
+| ------ | ------- | --------------------------- |
+| Pro    | $19/mo  | 500                         |
+| Plus   | $79/mo  | 2,500                       |
+| Studio | $199/mo | 10,000                      |
 
 Plan cards render on `/pricing` and as buttons in Console → Billing. To activate them:
 

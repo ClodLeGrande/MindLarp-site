@@ -49,7 +49,12 @@ export function beginOAuth(provider) {
     client_id: config.id,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: provider === 'google' ? 'openid email profile' : provider === 'discord' ? 'identify email' : 'read:user user:email',
+    scope:
+      provider === 'google'
+        ? 'openid email profile'
+        : provider === 'discord'
+          ? 'identify email'
+          : 'read:user user:email',
     state,
   });
   if (provider === 'google') {
@@ -63,7 +68,8 @@ export function beginOAuth(provider) {
 export async function completeOAuth(provider, url, encoded) {
   if (!encoded) throw new Error('The sign-in attempt expired. Please try again.');
   const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
-  if (!url.searchParams.get('code') || url.searchParams.get('state') !== payload.state) throw new Error('OAuth state validation failed. Please try again.');
+  if (!url.searchParams.get('code') || url.searchParams.get('state') !== payload.state)
+    throw new Error('OAuth state validation failed. Please try again.');
   const config = providerConfig(provider);
   if (!config?.id || !config.secret) throw new Error('This sign-in provider is not configured.');
   const redirectUri = `${process.env.PUBLIC_URL || 'http://localhost:5173'}/auth/${provider}/callback`;
@@ -84,21 +90,32 @@ export async function completeOAuth(provider, url, encoded) {
   if (!tokenResponse.ok) throw new Error('The provider did not accept the sign-in code.');
   const tokens = await tokenResponse.json();
   if (!tokens.access_token) throw new Error('The provider returned no access token.');
-  const headers = { Authorization: `Bearer ${tokens.access_token}`, Accept: 'application/json', 'User-Agent': 'MindLarp' };
+  const headers = {
+    Authorization: `Bearer ${tokens.access_token}`,
+    Accept: 'application/json',
+    'User-Agent': 'MindLarp',
+  };
 
   if (provider === 'google') {
     const response = await fetch(config.profile, { headers, signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error('Could not read the Google profile.');
     const profile = await response.json();
-    if (!profile.email_verified || !profile.email) throw new Error('A verified Google email is required.');
-    return { provider, providerId: String(profile.sub), email: profile.email.toLowerCase(), displayName: profile.name || profile.email.split('@')[0] };
+    if (!profile.email_verified || !profile.email)
+      throw new Error('A verified Google email is required.');
+    return {
+      provider,
+      providerId: String(profile.sub),
+      email: profile.email.toLowerCase(),
+      displayName: profile.name || profile.email.split('@')[0],
+    };
   }
 
   if (provider === 'discord') {
     const response = await fetch(config.profile, { headers, signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error('Could not read the Discord profile.');
     const profile = await response.json();
-    if (profile.verified !== true || !profile.email) throw new Error('A verified Discord email is required.');
+    if (profile.verified !== true || !profile.email)
+      throw new Error('A verified Discord email is required.');
     return {
       provider,
       providerId: String(profile.id),
@@ -114,7 +131,13 @@ export async function completeOAuth(provider, url, encoded) {
   if (!userResponse.ok || !emailResponse.ok) throw new Error('Could not read the GitHub profile.');
   const profile = await userResponse.json();
   const emails = await emailResponse.json();
-  const email = emails.find((item) => item.primary && item.verified) || emails.find((item) => item.verified);
+  const email =
+    emails.find(item => item.primary && item.verified) || emails.find(item => item.verified);
   if (!email) throw new Error('A verified GitHub email is required.');
-  return { provider, providerId: String(profile.id), email: email.email.toLowerCase(), displayName: profile.name || profile.login };
+  return {
+    provider,
+    providerId: String(profile.id),
+    email: email.email.toLowerCase(),
+    displayName: profile.name || profile.login,
+  };
 }

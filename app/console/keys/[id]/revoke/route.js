@@ -8,11 +8,16 @@ export async function POST(request, { params }) {
   const auth = await requireUser();
   const { body, error } = await readForm(request);
   if (error) return error;
-  if (!requireCsrf(Object.fromEntries(body), auth)) return htmlResponse(notFoundContent(), 'Forbidden', 403);
+  if (!requireCsrf(Object.fromEntries(body), auth))
+    return htmlResponse(notFoundContent(), 'Forbidden', 403);
   const store = await getStore();
   const { id } = await params;
-  const key = store.data.keys.find((item) => item.id === id && item.userId === auth.user.id && !item.revokedAt);
+  const key = store.data.keys.find(
+    item => item.id === id && item.userId === auth.user.id && !item.revokedAt,
+  );
   if (!key) return htmlResponse(notFoundContent(), 'Not found', 404);
-  await store.update((data) => { data.keys.find((item) => item.id === key.id).revokedAt = new Date().toISOString(); });
+  await store.update(data => {
+    data.keys.find(item => item.id === key.id).revokedAt = new Date().toISOString();
+  });
   return formRedirect(request, '/console/keys');
 }

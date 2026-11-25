@@ -9,7 +9,8 @@ globalThis.fetch = async (input, init = {}) => {
   }
 
   if (url.hostname === 'openidconnect.googleapis.com') {
-    const token = String(init.headers?.Authorization || '').replace('Bearer mock-token-', '') || 'oauth';
+    const token =
+      String(init.headers?.Authorization || '').replace('Bearer mock-token-', '') || 'oauth';
     return Response.json({
       sub: `google-${token}`,
       email: token === 'unverified' ? 'victim@example.com' : `${token}@example.com`,
@@ -24,7 +25,8 @@ globalThis.fetch = async (input, init = {}) => {
   }
 
   if (url.hostname === 'discord.com' && url.pathname === '/api/users/@me') {
-    const token = String(init.headers?.Authorization || '').replace('Bearer mock-discord-', '') || 'oauth';
+    const token =
+      String(init.headers?.Authorization || '').replace('Bearer mock-discord-', '') || 'oauth';
     return Response.json({
       id: `discord-${token}`,
       email: token === 'unverified' ? 'victim@example.com' : `${token}@example.com`,

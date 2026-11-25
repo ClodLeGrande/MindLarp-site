@@ -17,7 +17,8 @@ export const legalUi = {
   en: {
     languageLabel: 'Document language',
     appendixTitle: 'Appendix — Plans',
-    appendixIntro: 'Service plans as of the publication date of this version. Ruble amounts are indicative.',
+    appendixIntro:
+      'Service plans as of the publication date of this version. Ruble amounts are indicative.',
     planColumn: 'Plan',
     usdColumn: 'USD / month',
     rubColumn: 'RUB / month (indicative)',
@@ -26,7 +27,8 @@ export const legalUi = {
   ru: {
     languageLabel: 'Язык документа',
     appendixTitle: 'Приложение — Тарифы',
-    appendixIntro: 'Тарифы Сервиса на дату публикации настоящей редакции. Суммы в рублях указаны ориентировочно.',
+    appendixIntro:
+      'Тарифы Сервиса на дату публикации настоящей редакции. Суммы в рублях указаны ориентировочно.',
     planColumn: 'Тариф',
     usdColumn: 'USD в месяц',
     rubColumn: 'RUB в месяц (ориентировочно)',

@@ -4,9 +4,7 @@ export function checkSameOrigin(request) {
   let expectedOrigin;
 
   try {
-    expectedOrigin = configuredUrl
-      ? new URL(configuredUrl).origin
-      : new URL(request.url).origin;
+    expectedOrigin = configuredUrl ? new URL(configuredUrl).origin : new URL(request.url).origin;
   } catch {
     return new Response('Forbidden', {
       status: 403,

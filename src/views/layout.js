@@ -21,18 +21,37 @@ export function brand() {
   return '<span class="brand-mark" aria-hidden="true"><img src="/mindlarp-mark.svg" alt="" width="434" height="298"></span><span class="brand-word">mindlarp<span class="brand-cursor">_</span></span>';
 }
 
-export function publicLayout({ title, description = 'A family of AI models for clear thinking and ambitious ideas.', path = '/', content, bodyClass = '', nonce = '' }) {
+export function publicLayout({
+  title,
+  description = 'A family of AI models for clear thinking and ambitious ideas.',
+  path = '/',
+  content,
+  bodyClass = '',
+  nonce = '',
+}) {
   const siteUrl = (process.env.PUBLIC_URL || 'https://mindlarp.ai').replace(/\/$/, '');
   const canonical = `${siteUrl}${path === '' ? '/' : path}`;
-  const noindex = path === '/console' || bodyClass.includes('auth-page') || title === 'Page not found';
-  const nav = navigation.map(([label, href]) => {
-    const active = path === href || (href !== '/' && path.startsWith(`${href}/`));
-    return `<a class="rail-link ${active ? 'active' : ''}" href="${href}" ${active ? 'aria-current="page"' : ''}>${label}</a>`;
-  }).join('');
-  const socials = socialLinks.map(([label, href]) => `<a href="${href}" target="_blank" rel="noreferrer" aria-label="MindLarp on ${label}">${label} ${icon('arrow')}</a>`).join('');
+  const noindex =
+    path === '/console' || bodyClass.includes('auth-page') || title === 'Page not found';
+  const nav = navigation
+    .map(([label, href]) => {
+      const active = path === href || (href !== '/' && path.startsWith(`${href}/`));
+      return `<a class="rail-link ${active ? 'active' : ''}" href="${href}" ${active ? 'aria-current="page"' : ''}>${label}</a>`;
+    })
+    .join('');
+  const socials = socialLinks
+    .map(
+      ([label, href]) =>
+        `<a href="${href}" target="_blank" rel="noreferrer" aria-label="MindLarp on ${label}">${label} ${icon('arrow')}</a>`,
+    )
+    .join('');
   const structuredData = JSON.stringify({
-    '@context': 'https://schema.org', '@type': 'Organization', name: 'MindLarp', url: siteUrl,
-    logo: `${siteUrl}/mindlarp-mark.svg`, parentOrganization: { '@type': 'Organization', name: 'ClodLeGrande' },
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'MindLarp',
+    url: siteUrl,
+    logo: `${siteUrl}/mindlarp-mark.svg`,
+    parentOrganization: { '@type': 'Organization', name: 'ClodLeGrande' },
     sameAs: socialLinks.map(([, href]) => href),
   });
 
@@ -96,10 +115,12 @@ export function consoleLayout({ title, path, content, user, csrf, nonce = '' }) 
     ['/console/billing', 'Billing', 'chart'],
     ['/console/settings', 'Settings', 'settings'],
   ];
-  const nav = items.map(([href, label, iconName]) => {
-    const active = path === href;
-    return `<a href="${href}" class="console-nav-link ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>${icon(iconName)} ${label}<span class="nav-arrow">↗</span></a>`;
-  }).join('');
+  const nav = items
+    .map(([href, label, iconName]) => {
+      const active = path === href;
+      return `<a href="${href}" class="console-nav-link ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>${icon(iconName)} ${label}<span class="nav-arrow">↗</span></a>`;
+    })
+    .join('');
   const chat = chatUrl();
   const chatLink = `<a href="${escapeHtml(chat || '/console')}" class="console-nav-link" ${chat ? 'target="_blank" rel="noopener"' : ''}>${icon('arrow')} Chat<span class="nav-arrow">↗</span></a>`;
   return `<!doctype html>

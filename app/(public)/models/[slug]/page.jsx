@@ -4,7 +4,7 @@ import { modelPage } from '@/src/views/public.js';
 import { pageMetadata } from '@/src/server/metadata.js';
 
 export function generateStaticParams() {
-  return models.map((model) => ({ slug: model.slug }));
+  return models.map(model => ({ slug: model.slug }));
 }
 
 export async function generateMetadata({ params }) {

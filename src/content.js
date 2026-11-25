@@ -7,8 +7,10 @@ export const models = [
     index: '01',
     eyebrow: 'Balanced / versatile',
     status: 'Coming soon',
-    description: 'A balanced generalist for nuanced writing, complex analysis, and dependable agents.',
-    longDescription: 'Larp 1 is the default choice for most applications. It combines strong reasoning and instruction following with the speed and efficiency needed for production.',
+    description:
+      'A balanced generalist for nuanced writing, complex analysis, and dependable agents.',
+    longDescription:
+      'Larp 1 is the default choice for most applications. It combines strong reasoning and instruction following with the speed and efficiency needed for production.',
     context: '1M',
     inputPrice: '$0.00',
     outputPrice: '$0.00',
@@ -23,8 +25,10 @@ export const models = [
     index: '02',
     eyebrow: 'Code / precise',
     status: 'Coming soon',
-    description: 'Our most capable model for writing code, difficult reasoning, and ambitious engineering.',
-    longDescription: 'Larp 1 Code takes on work with many moving parts. Choose it for writing and reviewing code, difficult analysis, multi-step planning, and technical research.',
+    description:
+      'Our most capable model for writing code, difficult reasoning, and ambitious engineering.',
+    longDescription:
+      'Larp 1 Code takes on work with many moving parts. Choose it for writing and reviewing code, difficult analysis, multi-step planning, and technical research.',
     context: '1M',
     inputPrice: '$0.00',
     outputPrice: '$0.00',
@@ -40,7 +44,13 @@ export const plans = [
     price: 19,
     tagline: 'For everyday work',
     dailyLimit: 500,
-    features: ['Both Larp 1 models', '500 requests per day', '1M context window', 'Chat + API access', 'Standard support'],
+    features: [
+      'Both Larp 1 models',
+      '500 requests per day',
+      '1M context window',
+      'Chat + API access',
+      'Standard support',
+    ],
     linkEnv: 'STRIPE_PAYMENT_LINK_PRO',
     priceEnv: 'STRIPE_PRICE_ID_PRO',
     limitEnv: 'INFERENCE_DAILY_REQUEST_LIMIT_PRO',
@@ -52,7 +62,12 @@ export const plans = [
     tagline: 'For heavier workloads',
     dailyLimit: 2500,
     featured: true,
-    features: ['Everything in Pro', '2,500 requests per day', 'Priority support', 'Early access to new models'],
+    features: [
+      'Everything in Pro',
+      '2,500 requests per day',
+      'Priority support',
+      'Early access to new models',
+    ],
     linkEnv: 'STRIPE_PAYMENT_LINK_PLUS',
     priceEnv: 'STRIPE_PRICE_ID_PLUS',
     limitEnv: 'INFERENCE_DAILY_REQUEST_LIMIT_PLUS',
@@ -63,7 +78,12 @@ export const plans = [
     price: 199,
     tagline: 'For products at scale',
     dailyLimit: 10000,
-    features: ['Everything in Plus', '10,000 requests per day', 'Highest daily throughput', 'Dedicated support'],
+    features: [
+      'Everything in Plus',
+      '10,000 requests per day',
+      'Highest daily throughput',
+      'Dedicated support',
+    ],
     linkEnv: 'STRIPE_PAYMENT_LINK_STUDIO',
     priceEnv: 'STRIPE_PRICE_ID_STUDIO',
     limitEnv: 'INFERENCE_DAILY_REQUEST_LIMIT_STUDIO',
@@ -80,5 +100,5 @@ export const docsNavigation = [
 ];
 
 export function getModel(slug) {
-  return models.find((model) => model.slug === slug);
+  return models.find(model => model.slug === slug);
 }

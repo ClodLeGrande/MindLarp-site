@@ -11,7 +11,7 @@ import { checkSameOrigin } from '@/src/server/request-security.js';
 
 export async function POST(request) {
   const originError = checkSameOrigin(request);
-if (originError) return originError;
+  if (originError) return originError;
   const rate = consumeRateLimit(request, 'setup', {
     limit: 5,
     windowMs: 15 * 60_000,
@@ -59,8 +59,5 @@ if (originError) return originError;
 
   const session = await createSession(user.id);
 
-  return setSessionCookie(
-    formRedirect(request, '/console'),
-    session.token
-  );
+  return setSessionCookie(formRedirect(request, '/console'), session.token);
 }

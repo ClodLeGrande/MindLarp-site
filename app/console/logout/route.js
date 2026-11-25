@@ -8,8 +8,11 @@ export async function POST(request) {
   const auth = await requireUser();
   const { body, error } = await readForm(request);
   if (error) return error;
-  if (!requireCsrf(Object.fromEntries(body), auth)) return htmlResponse(notFoundContent(), 'Forbidden', 403);
+  if (!requireCsrf(Object.fromEntries(body), auth))
+    return htmlResponse(notFoundContent(), 'Forbidden', 403);
   const store = await getStore();
-  await store.update((data) => { data.sessions = data.sessions.filter((item) => item.id !== auth.session.id); });
+  await store.update(data => {
+    data.sessions = data.sessions.filter(item => item.id !== auth.session.id);
+  });
   return setSessionCookie(formRedirect(request, '/login'), '', 0);
 }

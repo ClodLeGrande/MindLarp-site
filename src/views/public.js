@@ -16,12 +16,36 @@ function modelArtwork(large = false) {
 
 export function homePage() {
   const features = [
-    ['01', 'Deep reasoning', 'Work through ambiguous questions, complex constraints, and the details that matter.'],
-    ['02', '1M context', 'Keep large documents, long conversations, and substantial codebases in view.'],
-    ['03', 'Tool calling', 'Connect models to your functions and structured workflows with a familiar API.'],
-    ['04', 'Streaming by default', 'Build responsive experiences with token-by-token output and clear errors.'],
-    ['05', 'Your credentials', 'Create scoped API keys, set expiration, and revoke access immediately.'],
-    ['06', 'Visible usage', 'Follow requests, tokens, model activity, and billing from one workspace.'],
+    [
+      '01',
+      'Deep reasoning',
+      'Work through ambiguous questions, complex constraints, and the details that matter.',
+    ],
+    [
+      '02',
+      '1M context',
+      'Keep large documents, long conversations, and substantial codebases in view.',
+    ],
+    [
+      '03',
+      'Tool calling',
+      'Connect models to your functions and structured workflows with a familiar API.',
+    ],
+    [
+      '04',
+      'Streaming by default',
+      'Build responsive experiences with token-by-token output and clear errors.',
+    ],
+    [
+      '05',
+      'Your credentials',
+      'Create scoped API keys, set expiration, and revoke access immediately.',
+    ],
+    [
+      '06',
+      'Visible usage',
+      'Follow requests, tokens, model activity, and billing from one workspace.',
+    ],
   ];
   const content = `<section class="hermes-hero">
     <div class="hero-orbit" aria-hidden="true"><span></span><span></span><span></span><b>M</b></div>
@@ -38,7 +62,7 @@ export function homePage() {
   </section>
   ${trustedStrip()}
   <section class="section home-about" data-reveal><div class="section-label"><span>[ 01 ]</span><span>THE MODEL FAMILY</span></div><div class="section-split-heading"><h2>What is MindLarp?</h2><p>A family of AI models designed to work wherever you do. Start with a conversation, then use the same intelligence through one consistent, OpenAI-compatible API. <a href="/docs">Explore the documentation ↗</a></p></div><div class="hermes-feature-grid">${features.map(([index, title, text]) => `<article data-reveal><span>${index}</span><h3>${title}</h3><p>${text}</p><i aria-hidden="true">↗</i></article>`).join('')}</div></section>
-  <section class="section home-models"><div class="section-label"><span>[ 02 ]</span><span>CHOOSE YOUR DEPTH</span></div><div class="section-split-heading"><h2>One family.<br>Two ways forward.</h2><p>Move between speed and deeper reasoning without changing your integration.</p></div><div class="home-model-grid">${models.map((model) => `<article class="home-model-card" data-reveal><div class="model-card-top"><span>${model.index} / LARP 1</span><span class="release-tag">${model.status.toUpperCase()}</span></div><div class="model-glyph" aria-hidden="true">${model.slug === 'larp-1' ? '✦' : '◈'}</div><span class="micro-label">${model.eyebrow}</span><h3>${model.name}</h3><p>${model.description}</p><dl><div><dt>CONTEXT</dt><dd>${model.context}</dd></div><div><dt>PROFILE</dt><dd>${model.latency}</dd></div></dl><a href="/models/${model.slug}" class="text-link">Explore model ${icon('arrow')}</a></article>`).join('')}</div></section>
+  <section class="section home-models"><div class="section-label"><span>[ 02 ]</span><span>CHOOSE YOUR DEPTH</span></div><div class="section-split-heading"><h2>One family.<br>Two ways forward.</h2><p>Move between speed and deeper reasoning without changing your integration.</p></div><div class="home-model-grid">${models.map(model => `<article class="home-model-card" data-reveal><div class="model-card-top"><span>${model.index} / LARP 1</span><span class="release-tag">${model.status.toUpperCase()}</span></div><div class="model-glyph" aria-hidden="true">${model.slug === 'larp-1' ? '✦' : '◈'}</div><span class="micro-label">${model.eyebrow}</span><h3>${model.name}</h3><p>${model.description}</p><dl><div><dt>CONTEXT</dt><dd>${model.context}</dd></div><div><dt>PROFILE</dt><dd>${model.latency}</dd></div></dl><a href="/models/${model.slug}" class="text-link">Explore model ${icon('arrow')}</a></article>`).join('')}</div></section>
   <section class="section home-quickstart"><div class="section-label"><span>[ 03 ]</span><span>QUICKSTART</span></div><div class="quickstart-grid"><div><h2>From zero to<br>first response.</h2><p>One key. One endpoint. No new mental model required. The models are not released yet: until launch the API returns a clear <code>503</code> instead of an answer.</p><ol class="quickstart-steps"><li><span>01</span><div><strong>Create a scoped API key</strong><small>Your full secret is shown once.</small></div></li><li><span>02</span><div><strong>Choose your model</strong><small>Larp 1 for momentum. Larp 1 Code for depth.</small></div></li><li><span>03</span><div><strong>Make something useful</strong><small>Stream results and inspect real usage.</small></div></li></ol><a href="/docs/getting-started" class="text-link">Read the quickstart ${icon('arrow')}</a></div><div class="code-window"><div class="code-toolbar"><span><i class="window-dot"></i> request.sh</span><button class="copy-button js-copy" data-copy-target="home-code" type="button">${icon('copy')} Copy</button></div><pre id="home-code"><code><span class="code-muted">$</span> curl http://localhost:5173/v1/chat/completions \\
   -H <span class="code-green">"Authorization: Bearer $MINDLARP_API_KEY"</span> \\
   -H <span class="code-green">"Content-Type: application/json"</span> \\
@@ -50,12 +74,24 @@ export function homePage() {
     }]
   }'</span></code></pre><div class="code-result"><span>COMING SOON</span><span>RESPONSES AT LAUNCH <i></i></span></div></div></div></section>
   <section class="home-console-cta" data-reveal><span class="section-kicker">[ 04 ] YOUR NEXT SESSION</span><h2>Bring the question.<br><span>MindLarp is coming soon.</span></h2><p>Larp 1 and Larp 1 Code have not been released yet. Create your account and API keys today — chat and API responses go live at launch.</p><div class="button-row"><a href="${escapeHtml(chatUrl() || '/console')}" class="button button-primary">Start chat ${icon('arrow')}</a><a href="/console" class="button button-ghost">Open console</a></div><div class="console-cta-word" aria-hidden="true">M_</div></section>`;
-  return publicLayout({ title: 'The open intelligence model family', description: 'Meet MindLarp Larp 1 and Larp 1 Code: two AI models for everyday work and deeper reasoning. Coming soon — start a chat or build with one simple API.', path: '/', content, bodyClass: 'home-page' });
+  return publicLayout({
+    title: 'The open intelligence model family',
+    description:
+      'Meet MindLarp Larp 1 and Larp 1 Code: two AI models for everyday work and deeper reasoning. Coming soon — start a chat or build with one simple API.',
+    path: '/',
+    content,
+    bodyClass: 'home-page',
+  });
 }
 
 export function modelsPage() {
-  const rows = models.map((model) => `<a class="model-row" href="/models/${model.slug}"><span class="model-row-index">${model.index}</span><div><h2>${model.name}</h2><p>${model.description}</p></div><div class="model-row-meta"><span class="release-tag">${model.status.toUpperCase()}</span><span>${model.context} context</span><span>${model.latency}</span></div>${icon('arrow')}</a>`).join('');
-  const content = `<section class="page-hero"><span class="section-kicker">THE MINDLARP FAMILY</span><h1>Choose your<br>way of thinking<span class="accent-dot">.</span></h1><p>Two models. One coherent family. Each is tuned for a different balance of speed, capability, and depth. Neither model has been released yet — both are coming soon.</p></section><section class="model-list">${rows}</section><section class="section comparison-section"><span class="section-kicker">AT A GLANCE</span><h2>Compare the family.</h2><div class="table-wrap"><table class="comparison-table"><thead><tr><th>Model</th><th>Best for</th><th>Context</th><th>Input / 1M</th><th>Output / 1M</th></tr></thead><tbody>${models.map((m) => `<tr><td><a href="/models/${m.slug}">${m.name}</a></td><td>${m.latency}</td><td>${m.context}</td><td>${m.inputPrice}</td><td>${m.outputPrice}</td></tr>`).join('')}</tbody></table></div></section>`;
+  const rows = models
+    .map(
+      model =>
+        `<a class="model-row" href="/models/${model.slug}"><span class="model-row-index">${model.index}</span><div><h2>${model.name}</h2><p>${model.description}</p></div><div class="model-row-meta"><span class="release-tag">${model.status.toUpperCase()}</span><span>${model.context} context</span><span>${model.latency}</span></div>${icon('arrow')}</a>`,
+    )
+    .join('');
+  const content = `<section class="page-hero"><span class="section-kicker">THE MINDLARP FAMILY</span><h1>Choose your<br>way of thinking<span class="accent-dot">.</span></h1><p>Two models. One coherent family. Each is tuned for a different balance of speed, capability, and depth. Neither model has been released yet — both are coming soon.</p></section><section class="model-list">${rows}</section><section class="section comparison-section"><span class="section-kicker">AT A GLANCE</span><h2>Compare the family.</h2><div class="table-wrap"><table class="comparison-table"><thead><tr><th>Model</th><th>Best for</th><th>Context</th><th>Input / 1M</th><th>Output / 1M</th></tr></thead><tbody>${models.map(m => `<tr><td><a href="/models/${m.slug}">${m.name}</a></td><td>${m.latency}</td><td>${m.context}</td><td>${m.inputPrice}</td><td>${m.outputPrice}</td></tr>`).join('')}</tbody></table></div></section>`;
   return publicLayout({ title: 'Models', path: '/models', content });
 }
 
@@ -71,18 +107,25 @@ export function modelPage(model) {
     "messages": [{"role": "user", "content": "Explain your approach."}]
   }'</span></code></pre></div><p class="panel-note">This example is for launch. Until the models are released, the API returns <code>503 inference_not_configured</code> instead of an answer.</p></section>
   <section class="model-next"><span>NOT SURE WHICH TO CHOOSE?</span><h2>Start with Larp 1.<br>Go deeper with Larp 1 Code.</h2><a href="/models" class="text-link">Compare all models ${icon('arrow')}</a></section>`;
-  return publicLayout({ title: model.name, description: model.description, path: `/models/${model.slug}`, content });
+  return publicLayout({
+    title: model.name,
+    description: model.description,
+    path: `/models/${model.slug}`,
+    content,
+  });
 }
 
 export function pricingPage() {
-  const planCards = plans.map((plan) => {
-    const link = planPaymentLink(plan);
-    const action = link
-      ? `<a class="button ${plan.featured ? 'button-primary' : 'button-ghost'}" href="${escapeHtml(link)}">Subscribe to ${plan.name} ${icon('arrow')}</a>`
-      : '<button class="button button-ghost" type="button" disabled>Payment link coming soon</button>';
-    return `<article class="plan-card ${plan.featured ? 'featured' : ''}">${plan.featured ? '<span class="plan-badge">MOST POPULAR</span>' : ''}<span class="micro-label">${plan.tagline}</span><h3>${plan.name}</h3><div class="plan-price">$${plan.price}<span class="plan-price-rub"> · ≈${formatRub(rubAmount(plan.price))} ₽</span><small> / month</small></div><ul class="plan-features">${plan.features.map((feature) => `<li>${feature}</li>`).join('')}</ul>${action}</article>`;
-  }).join('');
-  const content = `<section class="page-hero"><span class="section-kicker">LAUNCH PRICING</span><h1>Free while<br>we launch<span class="accent-dot">.</span></h1><p>Both models are coming soon. At launch they will be free: $0 for input and output tokens. Usage is tracked in the console. Optional Pro, Plus, and Studio subscriptions raise your daily limits and are billed monthly through Stripe.</p></section><section class="pricing-grid">${models.map((model) => `<article class="pricing-card ${model.slug === 'larp-1' ? 'featured' : ''}"><span class="micro-label">${model.eyebrow}</span><span class="release-tag">${model.status.toUpperCase()}</span><h2>${model.shortName}</h2><p>${model.description}</p><div class="price-line"><span>Input</span><strong>${model.inputPrice}<small> / 1M tokens</small></strong></div><div class="price-line"><span>Output</span><strong>${model.outputPrice}<small> / 1M tokens</small></strong></div><a href="/console/keys" class="button ${model.slug === 'larp-1' ? 'button-primary' : 'button-ghost'}">Build with ${model.shortName} ${icon('arrow')}</a></article>`).join('')}</section><section class="section plans-section"><span class="section-kicker">SUBSCRIPTION PLANS</span><h2>Pick your pace.</h2><p class="plans-intro">Subscribe securely with Stripe. Manage your payment details or cancel anytime from Console → Billing.</p>${consentLabel('<input type="checkbox" id="pricing-plan-consent">')}<p class="consent-note" hidden>Accept the Terms of Service and Privacy Policy to continue.</p><div class="plans-grid" data-consent-gate="pricing-plan-consent">${planCards}</div><p class="legal-footnote">${escapeHtml(billingFootnote('en'))}</p></section><section class="section faq-section"><span class="section-kicker">QUESTIONS, ANSWERED</span><h2>The useful details.</h2><details><summary>How does token billing work? ${icon('plus')}</summary><p>During the launch period input and output tokens are free. Subscriptions are a flat monthly price; your daily request limit depends on the plan.</p></details><details><summary>Can I set spending limits? ${icon('plus')}</summary><p>Workspace-level usage is visible in the console. Key expiration and scoped permissions help limit access.</p></details><details><summary>Is there a free tier? ${icon('plus')}</summary><p>Yes. Both models are free during the launch period. Pro, Plus, and Studio are optional subscriptions with higher daily request limits.</p></details><details><summary>How do I manage or cancel a subscription? ${icon('plus')}</summary><p>Open Console → Billing and choose Manage billing to enter the Stripe customer portal. Cards, invoices, and cancellation are handled by Stripe.</p></details></section>`;
+  const planCards = plans
+    .map(plan => {
+      const link = planPaymentLink(plan);
+      const action = link
+        ? `<a class="button ${plan.featured ? 'button-primary' : 'button-ghost'}" href="${escapeHtml(link)}">Subscribe to ${plan.name} ${icon('arrow')}</a>`
+        : '<button class="button button-ghost" type="button" disabled>Payment link coming soon</button>';
+      return `<article class="plan-card ${plan.featured ? 'featured' : ''}">${plan.featured ? '<span class="plan-badge">MOST POPULAR</span>' : ''}<span class="micro-label">${plan.tagline}</span><h3>${plan.name}</h3><div class="plan-price">$${plan.price}<span class="plan-price-rub"> · ≈${formatRub(rubAmount(plan.price))} ₽</span><small> / month</small></div><ul class="plan-features">${plan.features.map(feature => `<li>${feature}</li>`).join('')}</ul>${action}</article>`;
+    })
+    .join('');
+  const content = `<section class="page-hero"><span class="section-kicker">LAUNCH PRICING</span><h1>Free while<br>we launch<span class="accent-dot">.</span></h1><p>Both models are coming soon. At launch they will be free: $0 for input and output tokens. Usage is tracked in the console. Optional Pro, Plus, and Studio subscriptions raise your daily limits and are billed monthly through Stripe.</p></section><section class="pricing-grid">${models.map(model => `<article class="pricing-card ${model.slug === 'larp-1' ? 'featured' : ''}"><span class="micro-label">${model.eyebrow}</span><span class="release-tag">${model.status.toUpperCase()}</span><h2>${model.shortName}</h2><p>${model.description}</p><div class="price-line"><span>Input</span><strong>${model.inputPrice}<small> / 1M tokens</small></strong></div><div class="price-line"><span>Output</span><strong>${model.outputPrice}<small> / 1M tokens</small></strong></div><a href="/console/keys" class="button ${model.slug === 'larp-1' ? 'button-primary' : 'button-ghost'}">Build with ${model.shortName} ${icon('arrow')}</a></article>`).join('')}</section><section class="section plans-section"><span class="section-kicker">SUBSCRIPTION PLANS</span><h2>Pick your pace.</h2><p class="plans-intro">Subscribe securely with Stripe. Manage your payment details or cancel anytime from Console → Billing.</p>${consentLabel('<input type="checkbox" id="pricing-plan-consent">')}<p class="consent-note" hidden>Accept the Terms of Service and Privacy Policy to continue.</p><div class="plans-grid" data-consent-gate="pricing-plan-consent">${planCards}</div><p class="legal-footnote">${escapeHtml(billingFootnote('en'))}</p></section><section class="section faq-section"><span class="section-kicker">QUESTIONS, ANSWERED</span><h2>The useful details.</h2><details><summary>How does token billing work? ${icon('plus')}</summary><p>During the launch period input and output tokens are free. Subscriptions are a flat monthly price; your daily request limit depends on the plan.</p></details><details><summary>Can I set spending limits? ${icon('plus')}</summary><p>Workspace-level usage is visible in the console. Key expiration and scoped permissions help limit access.</p></details><details><summary>Is there a free tier? ${icon('plus')}</summary><p>Yes. Both models are free during the launch period. Pro, Plus, and Studio are optional subscriptions with higher daily request limits.</p></details><details><summary>How do I manage or cancel a subscription? ${icon('plus')}</summary><p>Open Console → Billing and choose Manage billing to enter the Stripe customer portal. Cards, invoices, and cancellation are handled by Stripe.</p></details></section>`;
   return publicLayout({ title: 'Pricing', path: '/pricing', content });
 }
 
@@ -114,25 +157,54 @@ export function authContent({ mode, error = '', notice = '', values = {} }) {
   const register = mode === 'register';
   const login = mode === 'login';
   const action = `/actions/auth/${mode}`;
-  const heading = setup ? 'Create the owner account' : register ? 'Create your account' : 'Sign in to MindLarp';
-  const googleIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.7 4.7 0 0 1-2 3v2.6h3.3c1.9-1.8 2.9-4.4 2.9-7.5Z"/><path fill="currentColor" d="M12 22c2.7 0 5-.9 6.6-2.3l-3.3-2.6c-.9.6-2 1-3.3 1a5.9 5.9 0 0 1-5.5-4H3.3v2.6A10 10 0 0 0 12 22Z" opacity=".75"/><path fill="currentColor" d="M6.5 14a6 6 0 0 1 0-3.9V7.5H3.3a10 10 0 0 0 0 9l3.2-2.6Z" opacity=".55"/><path fill="currentColor" d="M12 6a5.4 5.4 0 0 1 3.8 1.5l2.9-2.9A10 10 0 0 0 3.3 7.5l3.2 2.6A5.9 5.9 0 0 1 12 6Z" opacity=".9"/></svg>';
-  const githubIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .8a11.4 11.4 0 0 0-3.6 22.2c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.4-1.3-5.4-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.5 4.3 18.5 4.6 18.5 4.6c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.4 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.4 11.4 0 0 0 12 .8Z"/></svg>';
-  const oauth = login || register ? `<div class="oauth-divider">OR CONTINUE WITH</div><div class="oauth-buttons"><a class="oauth-button" href="/auth/google">${googleIcon} Google</a><a class="oauth-button" href="/auth/github">${githubIcon} GitHub</a></div>` : '';
+  const heading = setup
+    ? 'Create the owner account'
+    : register
+      ? 'Create your account'
+      : 'Sign in to MindLarp';
+  const googleIcon =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.7 4.7 0 0 1-2 3v2.6h3.3c1.9-1.8 2.9-4.4 2.9-7.5Z"/><path fill="currentColor" d="M12 22c2.7 0 5-.9 6.6-2.3l-3.3-2.6c-.9.6-2 1-3.3 1a5.9 5.9 0 0 1-5.5-4H3.3v2.6A10 10 0 0 0 12 22Z" opacity=".75"/><path fill="currentColor" d="M6.5 14a6 6 0 0 1 0-3.9V7.5H3.3a10 10 0 0 0 0 9l3.2-2.6Z" opacity=".55"/><path fill="currentColor" d="M12 6a5.4 5.4 0 0 1 3.8 1.5l2.9-2.9A10 10 0 0 0 3.3 7.5l3.2 2.6A5.9 5.9 0 0 1 12 6Z" opacity=".9"/></svg>';
+  const githubIcon =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .8a11.4 11.4 0 0 0-3.6 22.2c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.4-1.3-5.4-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.5 4.3 18.5 4.6 18.5 4.6c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.4 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.4 11.4 0 0 0 12 .8Z"/></svg>';
+  const oauth =
+    login || register
+      ? `<div class="oauth-divider">OR CONTINUE WITH</div><div class="oauth-buttons"><a class="oauth-button" href="/auth/google">${googleIcon} Google</a><a class="oauth-button" href="/auth/github">${githubIcon} GitHub</a></div>`
+      : '';
   const content = `<section class="auth-shell"><div class="auth-aside"><a href="/" class="auth-back">← Back to MindLarp</a><div><span class="section-kicker">YOUR WORKSPACE</span><h1>A place for<br>your next idea<span class="accent-dot">.</span></h1></div><p>One account. Every model.<br>Chat, API, usage, and billing.</p></div><div class="auth-form-wrap"><form class="auth-form" method="post" action="${action}"><span class="section-kicker">${setup ? 'FIRST TIME SETUP' : register ? 'JOIN MINDLARP' : 'WELCOME BACK'}</span><h2>${heading}</h2><p>${setup ? 'The first account owns this MindLarp instance.' : register ? 'Create an account to chat and build with the API.' : 'Use your password or a connected social account.'}</p>${error ? `<div class="alert error" role="alert">${escapeHtml(error)}</div>` : ''}${notice ? `<div class="alert success" role="status">${escapeHtml(notice)}</div>` : ''}${!login ? `<label>Your name<input type="text" name="displayName" autocomplete="name" required maxlength="80" value="${escapeHtml(values.displayName || '')}" placeholder="Ada Lovelace"></label>` : ''}<label>Email address<input type="email" name="email" autocomplete="email" required maxlength="254" value="${escapeHtml(values.email || '')}" placeholder="you@company.com"></label><label>Password<input type="password" name="password" autocomplete="${login ? 'current-password' : 'new-password'}" required minlength="12" placeholder="${login ? 'Your password' : 'At least 12 characters'}"></label>${!login ? '<label>Confirm password<input type="password" name="confirmPassword" autocomplete="new-password" required minlength="12" placeholder="Repeat your password"></label>' : ''}${!login ? consentLabel('<input type="checkbox" name="consent" value="accepted" required>') : ''}<button class="button button-primary button-full" type="submit">${setup ? 'Create workspace' : register ? 'Create account' : 'Sign in'} ${icon('arrow')}</button>${oauth}<p class="auth-switch">${login ? '<a href="/forgot-password">Forgot password?</a><br>New to MindLarp? <a href="/register">Create an account</a>' : 'Already registered? <a href="/login">Sign in</a>'}</p><p class="auth-hint">OAuth buttons require provider credentials on the server. Passwords always remain optional for social accounts.</p></form></div></section>`;
   return content;
 }
 
 export function authPage(options) {
-  const title = options.mode === 'setup' ? 'Set up workspace' : options.mode === 'register' ? 'Create account' : 'Sign in';
-  return publicLayout({ title, path: '/console', content: authContent(options), bodyClass: 'auth-page' });
+  const title =
+    options.mode === 'setup'
+      ? 'Set up workspace'
+      : options.mode === 'register'
+        ? 'Create account'
+        : 'Sign in';
+  return publicLayout({
+    title,
+    path: '/console',
+    content: authContent(options),
+    bodyClass: 'auth-page',
+  });
 }
 
 export function forgotPasswordPage({ error = '', notice = '', email = '' } = {}) {
   const content = `<section class="auth-shell"><div class="auth-aside"><a href="/" class="auth-back">← Back to MindLarp</a><div><span class="section-kicker">ACCOUNT RECOVERY</span><h1>Back to<br>your next idea<span class="accent-dot">.</span></h1></div><p>A secure, one-time link.<br>Valid for 30 minutes.</p></div><div class="auth-form-wrap"><form class="auth-form" method="post" action="/actions/auth/forgot-password"><span class="section-kicker">RESET PASSWORD</span><h2>Recover your account</h2><p>Enter your account email. If it matches an account, we will send password reset instructions.</p>${error ? `<div class="alert error" role="alert">${escapeHtml(error)}</div>` : ''}${notice ? `<div class="alert success" role="status">${escapeHtml(notice)}</div>` : ''}<label>Email address<input type="email" name="email" autocomplete="email" required maxlength="254" value="${escapeHtml(email)}" placeholder="you@company.com"></label><button class="button button-primary button-full" type="submit">Send reset link ${icon('arrow')}</button><p class="auth-switch">Remembered your password? <a href="/login">Sign in</a></p></form></div></section>`;
-  return publicLayout({ title: 'Recover account', path: '/forgot-password', content, bodyClass: 'auth-page' });
+  return publicLayout({
+    title: 'Recover account',
+    path: '/forgot-password',
+    content,
+    bodyClass: 'auth-page',
+  });
 }
 
 export function resetPasswordPage({ token = '', error = '' } = {}) {
   const content = `<section class="auth-shell"><div class="auth-aside"><a href="/" class="auth-back">← Back to MindLarp</a><div><span class="section-kicker">ACCOUNT RECOVERY</span><h1>A fresh start.<br>Same workspace<span class="accent-dot">.</span></h1></div><p>Choose a strong password.<br>Existing sessions will be signed out.</p></div><div class="auth-form-wrap"><form class="auth-form" method="post" action="/actions/auth/reset-password"><span class="section-kicker">NEW PASSWORD</span><h2>Choose a new password</h2><p>Use at least 12 characters. This reset link can only be used once.</p>${error ? `<div class="alert error" role="alert">${escapeHtml(error)}</div>` : ''}<input type="hidden" name="token" value="${escapeHtml(token)}"><label>New password<input type="password" name="password" autocomplete="new-password" required minlength="12" maxlength="1024" placeholder="At least 12 characters"></label><label>Confirm new password<input type="password" name="confirmPassword" autocomplete="new-password" required minlength="12" maxlength="1024" placeholder="Repeat your password"></label><button class="button button-primary button-full" type="submit">Update password ${icon('arrow')}</button><p class="auth-switch"><a href="/forgot-password">Request a new reset link</a></p></form></div></section>`;
-  return publicLayout({ title: 'Choose a new password', path: '/reset-password', content, bodyClass: 'auth-page' });
+  return publicLayout({
+    title: 'Choose a new password',
+    path: '/reset-password',
+    content,
+    bodyClass: 'auth-page',
+  });
 }

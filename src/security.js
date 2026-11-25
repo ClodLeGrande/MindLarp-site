@@ -31,10 +31,14 @@ export function safeEqual(left, right) {
 
 export function parseCookies(header = '') {
   return Object.fromEntries(
-    header.split(';').map((part) => part.trim()).filter(Boolean).map((part) => {
-      const index = part.indexOf('=');
-      if (index === -1) return [part, ''];
-      return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
-    }),
+    header
+      .split(';')
+      .map(part => part.trim())
+      .filter(Boolean)
+      .map(part => {
+        const index = part.indexOf('=');
+        if (index === -1) return [part, ''];
+        return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
+      }),
   );
 }

@@ -9,7 +9,10 @@ export function apiError(status, message, type = 'invalid_request_error', code =
 }
 
 export function formRedirect(request, location) {
-  return new NextResponse(null, { status: 303, headers: { Location: location, 'Cache-Control': 'no-store' } });
+  return new NextResponse(null, {
+    status: 303,
+    headers: { Location: location, 'Cache-Control': 'no-store' },
+  });
 }
 
 async function readText(request, limit) {
@@ -42,13 +45,25 @@ export async function readBody(request, limit = 1_048_576) {
   try {
     return { text: await readText(request, limit) };
   } catch {
-    return { error: apiError(413, 'Request body is too large.', 'invalid_request_error', 'body_too_large') };
+    return {
+      error: apiError(413, 'Request body is too large.', 'invalid_request_error', 'body_too_large'),
+    };
   }
 }
 
 export async function readForm(request, limit = 65_536) {
-  if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/x-www-form-urlencoded') {
-    return { error: apiError(415, 'Forms must be URL encoded.', 'invalid_request_error', 'unsupported_media_type') };
+  if (
+    request.headers.get('content-type')?.split(';')[0].trim() !==
+    'application/x-www-form-urlencoded'
+  ) {
+    return {
+      error: apiError(
+        415,
+        'Forms must be URL encoded.',
+        'invalid_request_error',
+        'unsupported_media_type',
+      ),
+    };
   }
   const { text, error } = await readBody(request, limit);
   if (error) return { error };
@@ -58,7 +73,14 @@ export async function readForm(request, limit = 65_536) {
 export async function readJson(request, limit = 1_048_576) {
   const contentType = request.headers.get('content-type')?.split(';')[0].trim();
   if (contentType !== 'application/json' && !contentType?.endsWith('+json')) {
-    return { error: apiError(415, 'Content-Type must be application/json.', 'invalid_request_error', 'unsupported_media_type') };
+    return {
+      error: apiError(
+        415,
+        'Content-Type must be application/json.',
+        'invalid_request_error',
+        'unsupported_media_type',
+      ),
+    };
   }
   const { text: raw, error } = await readBody(request, limit);
   if (error) return { error };
@@ -73,12 +95,21 @@ export async function readJson(request, limit = 1_048_576) {
 }
 
 export function rateLimitError(result) {
-  const response = apiError(429, 'Too many requests. Try again later.', 'rate_limit_error', 'rate_limit_exceeded');
+  const response = apiError(
+    429,
+    'Too many requests. Try again later.',
+    'rate_limit_error',
+    'rate_limit_exceeded',
+  );
   response.headers.set('Retry-After', String(result.retryAfter));
   return response;
 }
 
 export function routeError(error, prefix = '/v1/') {
   console.error(error);
-  return apiError(error.status || 500, error.status ? error.message : 'An internal server error occurred.', 'server_error');
+  return apiError(
+    error.status || 500,
+    error.status ? error.message : 'An internal server error occurred.',
+    'server_error',
+  );
 }

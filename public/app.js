@@ -9,20 +9,34 @@ export function initializePage() {
     navToggle.setAttribute('aria-expanded', String(open));
   });
 
-  document.querySelectorAll('[data-open-dialog]').forEach((button) => on(button, 'click', () => {
-    const dialog = document.getElementById(button.dataset.openDialog);
-    if (dialog instanceof HTMLDialogElement) dialog.showModal();
-  }));
-  document.querySelectorAll('dialog[data-open-on-load]').forEach((dialog) => dialog.showModal());
-  document.querySelectorAll('[data-close-dialog]').forEach((button) => on(button, 'click', () => button.closest('dialog')?.close()));
-  document.querySelectorAll('dialog').forEach((dialog) => on(dialog, 'click', (event) => {
-    if (event.target !== dialog || dialog.id === 'created-key-dialog') return;
-    const rect = dialog.getBoundingClientRect();
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
-  }));
-  document.querySelectorAll('form[data-confirm]').forEach((form) => on(form, 'submit', (event) => {
-    if (!window.confirm(form.dataset.confirm)) event.preventDefault();
-  }));
+  document.querySelectorAll('[data-open-dialog]').forEach(button =>
+    on(button, 'click', () => {
+      const dialog = document.getElementById(button.dataset.openDialog);
+      if (dialog instanceof HTMLDialogElement) dialog.showModal();
+    }),
+  );
+  document.querySelectorAll('dialog[data-open-on-load]').forEach(dialog => dialog.showModal());
+  document
+    .querySelectorAll('[data-close-dialog]')
+    .forEach(button => on(button, 'click', () => button.closest('dialog')?.close()));
+  document.querySelectorAll('dialog').forEach(dialog =>
+    on(dialog, 'click', event => {
+      if (event.target !== dialog || dialog.id === 'created-key-dialog') return;
+      const rect = dialog.getBoundingClientRect();
+      if (
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom
+      )
+        dialog.close();
+    }),
+  );
+  document.querySelectorAll('form[data-confirm]').forEach(form =>
+    on(form, 'submit', event => {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    }),
+  );
 
   async function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -39,34 +53,42 @@ export function initializePage() {
     textarea.remove();
   }
 
-  document.querySelectorAll('.js-copy').forEach((button) => on(button, 'click', async () => {
-    const target = button.dataset.copyTarget ? document.getElementById(button.dataset.copyTarget) : null;
-    const text = button.dataset.copyText ?? target?.textContent ?? '';
-    try {
-      await copyText(text.trim());
-      const original = button.innerHTML;
-      button.innerHTML = '<span class="copy-success">Copied</span>';
-      button.setAttribute('aria-label', 'Copied');
-      const timer = setTimeout(() => {
-        button.innerHTML = original;
-        timers.delete(timer);
-      }, 1600);
-      timers.add(timer);
-    } catch {
-      button.textContent = 'Copy failed';
-    }
-  }));
+  document.querySelectorAll('.js-copy').forEach(button =>
+    on(button, 'click', async () => {
+      const target = button.dataset.copyTarget
+        ? document.getElementById(button.dataset.copyTarget)
+        : null;
+      const text = button.dataset.copyText ?? target?.textContent ?? '';
+      try {
+        await copyText(text.trim());
+        const original = button.innerHTML;
+        button.innerHTML = '<span class="copy-success">Copied</span>';
+        button.setAttribute('aria-label', 'Copied');
+        const timer = setTimeout(() => {
+          button.innerHTML = original;
+          timers.delete(timer);
+        }, 1600);
+        timers.add(timer);
+      } catch {
+        button.textContent = 'Copy failed';
+      }
+    }),
+  );
 
-  document.querySelectorAll('[data-consent-gate]').forEach((gate) => {
+  document.querySelectorAll('[data-consent-gate]').forEach(gate => {
     const checkbox = document.getElementById(gate.dataset.consentGate);
     const note = gate.parentElement?.querySelector('.consent-note');
-    gate.querySelectorAll('a.button').forEach((link) => on(link, 'click', (event) => {
-      if (checkbox?.checked) return;
-      event.preventDefault();
-      if (note) note.hidden = false;
-      checkbox?.focus();
-    }));
-    on(checkbox, 'change', () => { if (note && checkbox.checked) note.hidden = true; });
+    gate.querySelectorAll('a.button').forEach(link =>
+      on(link, 'click', event => {
+        if (checkbox?.checked) return;
+        event.preventDefault();
+        if (note) note.hidden = false;
+        checkbox?.focus();
+      }),
+    );
+    on(checkbox, 'change', () => {
+      if (note && checkbox.checked) note.hidden = true;
+    });
   });
 
   return () => {

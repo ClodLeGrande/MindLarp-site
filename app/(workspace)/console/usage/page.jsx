@@ -11,6 +11,12 @@ export default async function Page({ searchParams }) {
   const requestedDays = Number((await searchParams).days);
   const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
   const store = await getStore();
-  const usage = store.data.usage.filter((event) => event.userId === user.id);
-  return usagePage({ user, csrf: session.csrf, stats: getUsageStats(store, user.id, days), usage, days });
+  const usage = store.data.usage.filter(event => event.userId === user.id);
+  return usagePage({
+    user,
+    csrf: session.csrf,
+    stats: getUsageStats(store, user.id, days),
+    usage,
+    days,
+  });
 }

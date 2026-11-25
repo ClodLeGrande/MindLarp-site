@@ -22,62 +22,132 @@ test('production validator accepts a minimal secure configuration', () => {
 });
 
 test('PUBLIC_URL must be an HTTPS origin without credentials, path, query, or fragment', () => {
-  for (const value of ['https://user:pass@mindlarp.example', 'https://mindlarp.example/base', 'https://mindlarp.example/?x=1', 'https://mindlarp.example/#home', 'not-a-url']) {
-    assert.match(validationErrors({ PUBLIC_URL: value }).join('\n'), /PUBLIC_URL must be an absolute HTTP\(S\) origin/, value);
+  for (const value of [
+    'https://user:pass@mindlarp.example',
+    'https://mindlarp.example/base',
+    'https://mindlarp.example/?x=1',
+    'https://mindlarp.example/#home',
+    'not-a-url',
+  ]) {
+    assert.match(
+      validationErrors({ PUBLIC_URL: value }).join('\n'),
+      /PUBLIC_URL must be an absolute HTTP\(S\) origin/,
+      value,
+    );
   }
-  assert.match(validationErrors({ PUBLIC_URL: 'http://mindlarp.example' }).join('\n'), /PUBLIC_URL must use HTTPS/);
+  assert.match(
+    validationErrors({ PUBLIC_URL: 'http://mindlarp.example' }).join('\n'),
+    /PUBLIC_URL must use HTTPS/,
+  );
   assert.deepEqual(validationErrors({ PUBLIC_URL: 'http://127.0.0.1:3000' }), []);
-  assert.deepEqual(validationErrors({ PUBLIC_URL: 'http://mindlarp.example', ALLOW_HTTP_PUBLIC_URL: 'true' }), []);
+  assert.deepEqual(
+    validationErrors({ PUBLIC_URL: 'http://mindlarp.example', ALLOW_HTTP_PUBLIC_URL: 'true' }),
+    [],
+  );
 });
 
 test('production validator rejects default PostgreSQL credentials and disabled TLS verification', () => {
-  assert.match(validationErrors({ DATABASE_URL: 'postgresql://postgres:postgres@db.example.com/postgres' }).join('\n'), /default PostgreSQL credentials/);
-  assert.match(validationErrors({ DATABASE_SSL_REJECT_UNAUTHORIZED: 'false' }).join('\n'), /not allowed in production/);
+  assert.match(
+    validationErrors({
+      DATABASE_URL: 'postgresql://postgres:postgres@db.example.com/postgres',
+    }).join('\n'),
+    /default PostgreSQL credentials/,
+  );
+  assert.match(
+    validationErrors({ DATABASE_SSL_REJECT_UNAUTHORIZED: 'false' }).join('\n'),
+    /not allowed in production/,
+  );
 });
 
 test('production inference requires HTTPS, a bounded daily quota, and an entitlement decision', () => {
-  assert.match(validationErrors({ MINDLARP_UPSTREAM_URL: 'http://inference.example/v1' }).join('\n'), /MINDLARP_UPSTREAM_URL must use HTTPS/);
-  assert.match(validationErrors({ MINDLARP_UPSTREAM_URL: 'https://inference.example/v1' }).join('\n'), /INFERENCE_DAILY_REQUEST_LIMIT/);
-  assert.match(validationErrors({ MINDLARP_UPSTREAM_URL: 'https://inference.example/v1', INFERENCE_DAILY_REQUEST_LIMIT: '100' }).join('\n'), /Configure Stripe entitlements/);
-  assert.deepEqual(validationErrors({
-    MINDLARP_UPSTREAM_URL: 'https://inference.example/v1',
-    INFERENCE_DAILY_REQUEST_LIMIT: '100',
-    ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true',
-  }), []);
-  assert.deepEqual(validationErrors({
-    MINDLARP_UPSTREAM_URL: 'https://inference.example/v1',
-    INFERENCE_DAILY_REQUEST_LIMIT: '100',
-    STRIPE_SECRET_KEY: 'sk_live_test',
-    STRIPE_PRICE_ID: 'price_test',
-    STRIPE_WEBHOOK_SECRET: 'whsec_test',
-  }), []);
-  assert.deepEqual(validationErrors({
-    MINDLARP_UPSTREAM_URL: 'http://127.0.0.1:8000/v1',
-    INFERENCE_DAILY_REQUEST_LIMIT: '100',
-    ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true',
-  }), []);
+  assert.match(
+    validationErrors({ MINDLARP_UPSTREAM_URL: 'http://inference.example/v1' }).join('\n'),
+    /MINDLARP_UPSTREAM_URL must use HTTPS/,
+  );
+  assert.match(
+    validationErrors({ MINDLARP_UPSTREAM_URL: 'https://inference.example/v1' }).join('\n'),
+    /INFERENCE_DAILY_REQUEST_LIMIT/,
+  );
+  assert.match(
+    validationErrors({
+      MINDLARP_UPSTREAM_URL: 'https://inference.example/v1',
+      INFERENCE_DAILY_REQUEST_LIMIT: '100',
+    }).join('\n'),
+    /Configure Stripe entitlements/,
+  );
+  assert.deepEqual(
+    validationErrors({
+      MINDLARP_UPSTREAM_URL: 'https://inference.example/v1',
+      INFERENCE_DAILY_REQUEST_LIMIT: '100',
+      ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true',
+    }),
+    [],
+  );
+  assert.deepEqual(
+    validationErrors({
+      MINDLARP_UPSTREAM_URL: 'https://inference.example/v1',
+      INFERENCE_DAILY_REQUEST_LIMIT: '100',
+      STRIPE_SECRET_KEY: 'sk_live_test',
+      STRIPE_PRICE_ID: 'price_test',
+      STRIPE_WEBHOOK_SECRET: 'whsec_test',
+    }),
+    [],
+  );
+  assert.deepEqual(
+    validationErrors({
+      MINDLARP_UPSTREAM_URL: 'http://127.0.0.1:8000/v1',
+      INFERENCE_DAILY_REQUEST_LIMIT: '100',
+      ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true',
+    }),
+    [],
+  );
 });
 
 test('plan payment links must be HTTPS and plan limits must be bounded integers', () => {
-  assert.match(validationErrors({ STRIPE_PAYMENT_LINK_PRO: 'http://buy.stripe.com/test' }).join('\n'), /STRIPE_PAYMENT_LINK_PRO must be an absolute HTTPS URL/);
-  assert.match(validationErrors({ STRIPE_PAYMENT_LINK_PLUS: 'not-a-url' }).join('\n'), /STRIPE_PAYMENT_LINK_PLUS must be an absolute HTTPS URL/);
-  assert.match(validationErrors({ INFERENCE_DAILY_REQUEST_LIMIT_STUDIO: '0' }).join('\n'), /INFERENCE_DAILY_REQUEST_LIMIT_STUDIO must be an integer between 1 and 100000/);
-  assert.deepEqual(validationErrors({
-    STRIPE_PAYMENT_LINK_PRO: 'https://buy.stripe.com/test_pro',
-    STRIPE_PAYMENT_LINK_PLUS: 'https://buy.stripe.com/test_plus',
-    STRIPE_PAYMENT_LINK_STUDIO: 'https://buy.stripe.com/test_studio',
-    INFERENCE_DAILY_REQUEST_LIMIT_PRO: '500',
-  }), []);
+  assert.match(
+    validationErrors({ STRIPE_PAYMENT_LINK_PRO: 'http://buy.stripe.com/test' }).join('\n'),
+    /STRIPE_PAYMENT_LINK_PRO must be an absolute HTTPS URL/,
+  );
+  assert.match(
+    validationErrors({ STRIPE_PAYMENT_LINK_PLUS: 'not-a-url' }).join('\n'),
+    /STRIPE_PAYMENT_LINK_PLUS must be an absolute HTTPS URL/,
+  );
+  assert.match(
+    validationErrors({ INFERENCE_DAILY_REQUEST_LIMIT_STUDIO: '0' }).join('\n'),
+    /INFERENCE_DAILY_REQUEST_LIMIT_STUDIO must be an integer between 1 and 100000/,
+  );
+  assert.deepEqual(
+    validationErrors({
+      STRIPE_PAYMENT_LINK_PRO: 'https://buy.stripe.com/test_pro',
+      STRIPE_PAYMENT_LINK_PLUS: 'https://buy.stripe.com/test_plus',
+      STRIPE_PAYMENT_LINK_STUDIO: 'https://buy.stripe.com/test_studio',
+      INFERENCE_DAILY_REQUEST_LIMIT_PRO: '500',
+    }),
+    [],
+  );
 });
 
 test('plaintext SMTP is allowed only for a local test relay', () => {
-  assert.match(validationErrors({ SMTP_HOST: 'smtp.example.com', SMTP_REQUIRE_TLS: 'false' }).join('\n'), /only for a local test relay/);
-  assert.deepEqual(validationErrors({ SMTP_HOST: 'smtp.example.com', SMTP_REQUIRE_TLS: 'true' }), []);
-  assert.deepEqual(validationErrors({ SMTP_HOST: '127.0.0.1', SMTP_PORT: '2525', SMTP_REQUIRE_TLS: 'false' }), []);
+  assert.match(
+    validationErrors({ SMTP_HOST: 'smtp.example.com', SMTP_REQUIRE_TLS: 'false' }).join('\n'),
+    /only for a local test relay/,
+  );
+  assert.deepEqual(
+    validationErrors({ SMTP_HOST: 'smtp.example.com', SMTP_REQUIRE_TLS: 'true' }),
+    [],
+  );
+  assert.deepEqual(
+    validationErrors({ SMTP_HOST: '127.0.0.1', SMTP_PORT: '2525', SMTP_REQUIRE_TLS: 'false' }),
+    [],
+  );
 });
 
 test('database pool and timeout settings are bounded', () => {
-  for (const key of ['DATABASE_QUERY_TIMEOUT', 'DATABASE_STATEMENT_TIMEOUT', 'DATABASE_LOCK_TIMEOUT']) {
+  for (const key of [
+    'DATABASE_QUERY_TIMEOUT',
+    'DATABASE_STATEMENT_TIMEOUT',
+    'DATABASE_LOCK_TIMEOUT',
+  ]) {
     assert.match(validationErrors({ [key]: '99' }).join('\n'), new RegExp(key));
     assert.deepEqual(validationErrors({ [key]: '15000' }), []);
   }
@@ -90,11 +160,33 @@ test('rate limiter validates limits and isolates account identifiers', () => {
   });
   const bucket = 'production-test-account-isolation';
 
-  assert.equal(consumeRateLimit(request, bucket, { limit: 2, windowMs: 60000, identifier: 'ada@example.com' }).allowed, true);
-  assert.equal(consumeRateLimit(request, bucket, { limit: 2, windowMs: 60000, identifier: 'ada@example.com' }).allowed, true);
-  assert.equal(consumeRateLimit(request, bucket, { limit: 2, windowMs: 60000, identifier: 'ada@example.com' }).allowed, false);
-  assert.equal(consumeRateLimit(request, bucket, { limit: 2, windowMs: 60000, identifier: 'grace@example.com' }).allowed, true);
+  assert.equal(
+    consumeRateLimit(request, bucket, { limit: 2, windowMs: 60000, identifier: 'ada@example.com' })
+      .allowed,
+    true,
+  );
+  assert.equal(
+    consumeRateLimit(request, bucket, { limit: 2, windowMs: 60000, identifier: 'ada@example.com' })
+      .allowed,
+    true,
+  );
+  assert.equal(
+    consumeRateLimit(request, bucket, { limit: 2, windowMs: 60000, identifier: 'ada@example.com' })
+      .allowed,
+    false,
+  );
+  assert.equal(
+    consumeRateLimit(request, bucket, {
+      limit: 2,
+      windowMs: 60000,
+      identifier: 'grace@example.com',
+    }).allowed,
+    true,
+  );
   clearRateLimit(request, bucket, 'ada@example.com');
   clearRateLimit(request, bucket, 'grace@example.com');
-  assert.throws(() => consumeRateLimit(request, bucket, { limit: 0, windowMs: 60000 }), /positive integer/);
+  assert.throws(
+    () => consumeRateLimit(request, bucket, { limit: 0, windowMs: 60000 }),
+    /positive integer/,
+  );
 });

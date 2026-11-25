@@ -8,17 +8,28 @@ export async function GET(request, { params }) {
   const { provider } = await params;
   if (!providers.includes(provider)) return new Response('Not found', { status: 404 });
   const response = formRedirect(request, '/console');
-  response.cookies.set(oauthCookieName(provider), '', { path: '/', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 0 });
+  response.cookies.set(oauthCookieName(provider), '', {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 0,
+  });
   try {
-    const identity = await completeOAuth(provider, new URL(request.url), request.cookies.get(oauthCookieName(provider))?.value);
+    const identity = await completeOAuth(
+      provider,
+      new URL(request.url),
+      request.cookies.get(oauthCookieName(provider))?.value,
+    );
     const user = await findOrCreateOAuthUser(identity);
     const session = await createSession(user.id);
     return setSessionCookie(response, session.token);
   } catch (error) {
     console.error(`OAuth ${provider}: ${error.message}`);
     const requestUrl = new URL(request.url);
-    const origin = process.env.PUBLIC_URL
-      || `${request.headers.get('x-forwarded-proto') || requestUrl.protocol.replace(':', '')}://${request.headers.get('host') || requestUrl.host}`;
+    const origin =
+      process.env.PUBLIC_URL ||
+      `${request.headers.get('x-forwarded-proto') || requestUrl.protocol.replace(':', '')}://${request.headers.get('host') || requestUrl.host}`;
     const code = /already exists/.test(error.message) ? 'account-exists' : 'oauth';
     response.headers.set('Location', `${origin.replace(/\/$/, '')}/login?error=${code}`);
     return response;

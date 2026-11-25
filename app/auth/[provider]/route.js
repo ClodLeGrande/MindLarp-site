@@ -45,6 +45,12 @@ export async function GET(request, { params }) {
     return htmlResponse(content, 'Sign in', 503, { bodyClass: 'auth-page', path: '/console' });
   }
   const response = NextResponse.redirect(oauth.authorizationUrl, 302);
-  response.cookies.set(oauthCookieName(provider), oauth.payload, { path: '/', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600 });
+  response.cookies.set(oauthCookieName(provider), oauth.payload, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 600,
+  });
   return response;
 }

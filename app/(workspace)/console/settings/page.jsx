@@ -6,6 +6,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function Page({ searchParams }) {
   const { user, session } = await requireUser();
-  const messages = { profile: 'Profile updated.', password: 'Password updated. Other sessions have been signed out.' };
-  return settingsPage({ user, csrf: session.csrf, message: messages[(await searchParams).updated] || '' });
+  const messages = {
+    profile: 'Profile updated.',
+    password: 'Password updated. Other sessions have been signed out.',
+  };
+  return settingsPage({
+    user,
+    csrf: session.csrf,
+    message: messages[(await searchParams).updated] || '',
+  });
 }

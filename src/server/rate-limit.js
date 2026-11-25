@@ -1,4 +1,4 @@
-const stores = globalThis.__mindLarpRateLimitStores ||= new Map();
+const stores = (globalThis.__mindLarpRateLimitStores ||= new Map());
 
 // Vercel terminates the public connection and supplies these headers.
 // Use the platform-provided client address by default; requiring TRUST_PROXY

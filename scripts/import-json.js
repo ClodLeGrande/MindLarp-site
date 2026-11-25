@@ -16,14 +16,26 @@ try {
   await migrateDatabase(pool);
   const store = new PostgresStore(pool);
   await store.init();
-  await store.update((data) => {
-    for (const collection of ['users', 'sessions', 'keys', 'usage', 'conversations', 'passwordResets']) {
-      const existing = new Set(data[collection].map((item) => item.id));
-      data[collection].push(...(imported[collection] || []).filter((item) => !existing.has(item.id)));
+  await store.update(data => {
+    for (const collection of [
+      'users',
+      'sessions',
+      'keys',
+      'usage',
+      'conversations',
+      'passwordResets',
+    ]) {
+      const existing = new Set(data[collection].map(item => item.id));
+      data[collection].push(...(imported[collection] || []).filter(item => !existing.has(item.id)));
     }
   });
   await store.refresh();
-  console.log(`Imported ${file}. Current rows: ${Object.entries(store.data).filter(([key]) => key !== 'version').map(([key, rows]) => `${key}=${rows.length}`).join(', ')}`);
+  console.log(
+    `Imported ${file}. Current rows: ${Object.entries(store.data)
+      .filter(([key]) => key !== 'version')
+      .map(([key, rows]) => `${key}=${rows.length}`)
+      .join(', ')}`,
+  );
   console.log('The source JSON file was left unchanged.');
 } finally {
   await pool.end();

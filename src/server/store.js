@@ -7,8 +7,10 @@ export async function getStore() {
   if (!globalThis.__mindLarpStorePromise) {
     const store = process.env.DATABASE_URL
       ? new PostgresStore(getDatabase())
-      : new Store(process.env.DATA_FILE ? resolve(process.env.DATA_FILE) : resolve('data/mindlarp.json'));
-    globalThis.__mindLarpStorePromise = store.init().catch((error) => {
+      : new Store(
+          process.env.DATA_FILE ? resolve(process.env.DATA_FILE) : resolve('data/mindlarp.json'),
+        );
+    globalThis.__mindLarpStorePromise = store.init().catch(error => {
       globalThis.__mindLarpStorePromise = null;
       throw error;
     });

@@ -1,26 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import {
-  hashPassword,
-  hashToken,
-  randomToken,
-  safeEqual,
-  verifyPassword,
-} from '../security.js';
+import { hashPassword, hashToken, randomToken, safeEqual, verifyPassword } from '../security.js';
 import { getStore } from './store.js';
 
 const sessionDuration = 12 * 60 * 60 * 1000;
 
 export function normalizeEmail(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 export function validEmail(value) {
   return (
-    typeof value === 'string' &&
-    value.length <= 254 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+    typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
   );
 }
 
@@ -31,17 +25,13 @@ export async function getCurrentAuth() {
 
   const store = await getStore();
 
-  const session = store.data.sessions.find((item) =>
-    safeEqual(item.tokenHash, hashToken(token))
-  );
+  const session = store.data.sessions.find(item => safeEqual(item.tokenHash, hashToken(token)));
 
   if (!session || Date.parse(session.expiresAt) <= Date.now()) {
     return null;
   }
 
-  const user = store.data.users.find(
-    (item) => item.id === session.userId
-  );
+  const user = store.data.users.find(item => item.id === session.userId);
 
   return user ? { session, user, token } : null;
 }
@@ -57,11 +47,7 @@ export async function requireUser() {
 }
 
 export function requireCsrf(body, auth) {
-  return (
-    auth &&
-    typeof body.csrf === 'string' &&
-    safeEqual(body.csrf, auth.session.csrf)
-  );
+  return auth && typeof body.csrf === 'string' && safeEqual(body.csrf, auth.session.csrf);
 }
 
 export async function createSession(userId) {
@@ -74,19 +60,15 @@ export async function createSession(userId) {
     tokenHash: hashToken(token),
     csrf: randomToken(24),
     createdAt: new Date().toISOString(),
-    expiresAt: new Date(
-      Date.now() + sessionDuration
-    ).toISOString(),
+    expiresAt: new Date(Date.now() + sessionDuration).toISOString(),
   };
 
-  await store.update((data) => {
-    if (!data.users.some((user) => user.id === userId)) {
+  await store.update(data => {
+    if (!data.users.some(user => user.id === userId)) {
       throw new Error('Cannot create session for missing user');
     }
 
-    data.sessions = data.sessions.filter(
-      (item) => Date.parse(item.expiresAt) > Date.now()
-    );
+    data.sessions = data.sessions.filter(item => Date.parse(item.expiresAt) > Date.now());
     data.sessions.push(session);
   });
 
@@ -118,16 +100,14 @@ export async function createPasswordUser({
 
   let user = null;
 
-  await store.update((data) => {
+  await store.update(data => {
     if (onlyIfEmpty && data.users.length > 0) return;
 
     if (requireExistingUser && data.users.length === 0) {
       return;
     }
 
-    const alreadyExists = data.users.some(
-      (item) => normalizeEmail(item.email) === normalizedEmail
-    );
+    const alreadyExists = data.users.some(item => normalizeEmail(item.email) === normalizedEmail);
 
     if (alreadyExists) return;
 
@@ -153,35 +133,31 @@ export async function findOrCreateOAuthUser(identity) {
   const store = await getStore();
 
   const email = normalizeEmail(identity.email);
-  const displayName = String(
-    identity.displayName || email.split('@')[0]
-  ).slice(0, 80);
+  const displayName = String(identity.displayName || email.split('@')[0]).slice(0, 80);
 
   let user = null;
 
-  await store.update((data) => {
-    user = data.users.find((item) =>
+  await store.update(data => {
+    user = data.users.find(item =>
       item.identities?.some(
-        (linked) =>
-          linked.provider === identity.provider &&
-          linked.providerId === identity.providerId
-      )
+        linked =>
+          linked.provider === identity.provider && linked.providerId === identity.providerId,
+      ),
     );
 
     if (!user) {
       // completeOAuth only returns provider-verified emails (Google
       // email_verified, GitHub verified primary), so matching by email
       // safely links this identity to the existing account.
-      user = data.users.find((item) => normalizeEmail(item.email) === email);
+      user = data.users.find(item => normalizeEmail(item.email) === email);
     }
 
     if (user) {
       user.identities ||= [];
 
       const identityExists = user.identities.some(
-        (linked) =>
-          linked.provider === identity.provider &&
-          linked.providerId === identity.providerId
+        linked =>
+          linked.provider === identity.provider && linked.providerId === identity.providerId,
       );
 
       if (!identityExists) {
@@ -219,10 +195,4 @@ export async function findOrCreateOAuthUser(identity) {
   return user;
 }
 
-export {
-  hashPassword,
-  hashToken,
-  randomToken,
-  safeEqual,
-  verifyPassword,
-};
+export { hashPassword, hashToken, randomToken, safeEqual, verifyPassword };

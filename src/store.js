@@ -47,6 +47,6 @@ export class Store {
   }
 
   cleanExpiredSessions(now = Date.now()) {
-    this.data.sessions = this.data.sessions.filter((session) => Date.parse(session.expiresAt) > now);
+    this.data.sessions = this.data.sessions.filter(session => Date.parse(session.expiresAt) > now);
   }
 }

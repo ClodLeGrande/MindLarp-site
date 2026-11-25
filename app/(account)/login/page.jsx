@@ -14,7 +14,8 @@ export default async function Page({ searchParams }) {
   const query = await searchParams;
   const errors = {
     oauth: 'Social sign-in could not be completed. Try again.',
-    'account-exists': 'An account with this email already exists, created with a different sign-in method. Contact the workspace owner if you cannot sign in.',
+    'account-exists':
+      'An account with this email already exists, created with a different sign-in method. Contact the workspace owner if you cannot sign in.',
     google: 'Google sign-in is not configured on this server.',
     github: 'GitHub sign-in is not configured on this server.',
     discord: 'Discord sign-in is not configured on this server.',

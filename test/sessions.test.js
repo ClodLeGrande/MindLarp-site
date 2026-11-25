@@ -11,16 +11,22 @@ import { tmpdir } from 'node:os';
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier === 'next/headers') {
-      return { url: 'data:text/javascript,export function cookies() { throw new Error("cookies() is not available in this test"); }', shortCircuit: true };
+      return {
+        url: 'data:text/javascript,export function cookies() { throw new Error("cookies() is not available in this test"); }',
+        shortCircuit: true,
+      };
     }
     if (specifier === 'next/navigation') {
-      return { url: 'data:text/javascript,export function redirect() { throw new Error("redirect() is not available in this test"); }', shortCircuit: true };
+      return {
+        url: 'data:text/javascript,export function redirect() { throw new Error("redirect() is not available in this test"); }',
+        shortCircuit: true,
+      };
     }
     return nextResolve(specifier, context);
   },
 });
 
-test('createSession prunes expired sessions and persists the result', async (t) => {
+test('createSession prunes expired sessions and persists the result', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'mindlarp-sessions-'));
   const previousDataFile = process.env.DATA_FILE;
   const previousDatabaseUrl = process.env.DATABASE_URL;
@@ -38,9 +44,27 @@ test('createSession prunes expired sessions and persists the result', async (t) 
   const store = await getStore();
   const userId = randomUUID();
   const timestamp = new Date().toISOString();
-  await store.update((data) => {
-    data.users.push({ id: userId, email: 'sessions@example.com', displayName: 'Sessions User', role: 'owner', identities: [], billing: {}, passwordSalt: null, passwordHash: null, createdAt: timestamp, updatedAt: timestamp });
-    data.sessions.push({ id: randomUUID(), userId, tokenHash: 'expired-token', csrf: 'csrf', createdAt: timestamp, expiresAt: new Date(Date.now() - 1000).toISOString() });
+  await store.update(data => {
+    data.users.push({
+      id: userId,
+      email: 'sessions@example.com',
+      displayName: 'Sessions User',
+      role: 'owner',
+      identities: [],
+      billing: {},
+      passwordSalt: null,
+      passwordHash: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    data.sessions.push({
+      id: randomUUID(),
+      userId,
+      tokenHash: 'expired-token',
+      csrf: 'csrf',
+      createdAt: timestamp,
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    });
   });
 
   const { session } = await createSession(userId);
