@@ -1,0 +1,27 @@
+name: Refactor formatting
+
+on:
+  push:
+    branches:
+      - refactor/readable-code
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/readable-code
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx --yes prettier@3.6.2 --write .
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Apply consistent formatting"
+          branch: refactor/readable-code
