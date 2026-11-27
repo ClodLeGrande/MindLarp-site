@@ -351,23 +351,19 @@ test('email/password registration and login work without email confirmation whil
   assert.equal(logout.status, 303);
   assert.equal((await fetch(`${origin}/console`, { headers: { Cookie: cookie }, redirect: 'manual' })).status, 307);
 });
-test('repeated password-login requests cannot bypass the OAuth-only sign-in policy', async (t) => {
+test('password login is rate limited after repeated failed attempts', async (t) => {
   const { origin, readData } = await startApp(t);
   await setupOwner(origin);
-
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const response = await post(origin, '/actions/auth/login', {
-      email: 'ada@example.com',
-      password,
-    });
-    assert.equal(response.status, 410);
+  let response;
+  for (let attempt = 0; attempt < 11; attempt += 1) {
+    response = await post(origin, '/actions/auth/login', { email: 'ada@example.com', password: 'incorrect-password' });
+    assert.equal(response.status, 303);
   }
-
+  assert.match(response.headers.get('location'), /error=limit/);
   const data = await readData();
   assert.equal(data.users.length, 1);
   assert.equal(data.sessions.length, 1);
 });
-
 test('legal pages serve full RU and EN documents with support contacts and plan appendix', async (t) => {
   const { origin } = await startApp(t);
   const pages = {
