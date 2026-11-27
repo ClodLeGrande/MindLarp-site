@@ -29,7 +29,7 @@ export async function POST(request) {
   const store = await getStore();
   const user = store.data.users.find((item) => normalizeEmail(item.email) === email);
   const valid = user?.passwordHash && user?.passwordSalt
-    ? await verifyPassword(password, { hash: user.passwordHash, salt: user.passwordSalt })
+    ? await verifyPassword(password, user.passwordSalt, user.passwordHash)
     : false;
 
   if (!valid) return formRedirect(request, '/login?error=credentials');
