@@ -9,7 +9,7 @@ export const termsEn = {
       number: '1',
       title: 'General Provisions',
       clauses: [
-        { number: '1.1', text: 'This offer (hereinafter referred to as the "Agreement") governs the relationship between the Provider and the Customer in connection with the provision by the Provider of digital goods and/or services through the online service (hereinafter referred to as the "Service").' },
+        { number: '1.1', text: 'This offer (hereinafter referred to as the "Agreement") governs the relationship between the Provider and the Customer in connection with the provision by the Provider of digital goods and/or services through the MindLarp online service using the Platega.io payment service (hereinafter referred to as the "Service").' },
         { number: '1.2', text: 'Use of the Service, registration, placing an order, payment for services, or obtaining access to digital materials constitutes the Customer\'s full and unconditional acceptance of the terms of this Agreement.' },
         { number: '1.3', text: 'If the Customer does not agree with the terms of the Agreement, the Customer must cease using the Service.' },
       ],
