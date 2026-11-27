@@ -13,13 +13,13 @@ export function formatRub(amount) {
   return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount);
 }
 
-export function formatUsdWithRub(usd) {
-  return `$${usd} · ≈${formatRub(rubAmount(usd))} ₽`;
+export function formatUsdWithRub(usd, rub) {
+  return rub == null ? `${usd}` : `${usd} = ${formatRub(rub)} ₽`;
 }
 
 export function billingFootnote(lang = 'en') {
   const rate = usdToRubRate();
   return lang === 'ru'
-    ? `Оплата списывается в USD. Сумма в рублях указана ориентировочно по курсу ${rate} ₽/$.`
-    : `Charges are billed in USD. The ruble amount is indicative, converted at ${rate} ₽/$.`;
+    ? 'Стоимость в рублях указана рядом с ценой в USD; итоговая сумма и доступные способы оплаты отображаются перед подтверждением платежа.'
+    : 'The fixed ruble price is shown alongside USD; the final amount and available payment methods are displayed before payment confirmation.';
 }
