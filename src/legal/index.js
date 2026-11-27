@@ -17,19 +17,19 @@ export const legalUi = {
   en: {
     languageLabel: 'Document language',
     appendixTitle: 'Appendix — Plans',
-    appendixIntro: 'Service plans as of the publication date of this version. Ruble amounts are indicative.',
+    appendixIntro: 'Service plans and fixed ruble prices as of the publication date of this version.',
     planColumn: 'Plan',
     usdColumn: 'USD / month',
-    rubColumn: 'RUB / month (indicative)',
+    rubColumn: 'RUB / month',
     perMonth: '/ month',
   },
   ru: {
     languageLabel: 'Язык документа',
     appendixTitle: 'Приложение — Тарифы',
-    appendixIntro: 'Тарифы Сервиса на дату публикации настоящей редакции. Суммы в рублях указаны ориентировочно.',
+    appendixIntro: 'Тарифы Сервиса и фиксированные цены в рублях на дату публикации настоящей редакции.',
     planColumn: 'Тариф',
     usdColumn: 'USD в месяц',
-    rubColumn: 'RUB в месяц (ориентировочно)',
+    rubColumn: 'RUB в месяц',
     perMonth: 'в месяц',
   },
 };

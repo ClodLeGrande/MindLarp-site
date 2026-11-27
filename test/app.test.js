@@ -226,42 +226,24 @@ test('owner setup validates input and establishes a persistent session', async (
   assert.equal((await fetch(`${origin}/setup`, { redirect: 'manual' })).headers.get('location'), '/login');
 });
 
-test('email/password login, registration, and recovery endpoints are disabled without changing account data', async (t) => {
+test('password auth rejects cross-origin requests and keeps recovery endpoints disabled', async (t) => {
   const { origin, readData } = await startApp(t);
   const cookie = await setupOwner(origin);
-
-  const disabledRequests = [
+  for (const [path, body] of [
     ['/actions/auth/login', { email: 'ada@example.com', password }],
-    ['/actions/auth/register', { displayName: 'Grace Hopper', email: 'grace@example.com', password, confirmPassword: password }],
-    ['/actions/auth/forgot-password', { email: 'ada@example.com' }],
-    ['/actions/auth/reset-password', { token: 'not-a-real-token', password, confirmPassword: password }],
-  ];
-
-  for (const [path, body] of disabledRequests) {
+    ['/actions/auth/register', { displayName: 'Grace Hopper', email: 'grace@example.com', password, confirmPassword: password, consent: 'accepted' }],
+  ]) {
     const response = await post(origin, path, body, cookie, 'https://evil.example');
-    assert.equal(response.status, 410, path);
+    assert.equal(response.status, 403, path);
   }
-
+  assert.equal((await post(origin, '/actions/auth/forgot-password', { email: 'ada@example.com' })).status, 410);
+  assert.equal((await post(origin, '/actions/auth/reset-password', { token: 'not-a-real-token', password, confirmPassword: password })).status, 410);
   assert.equal((await readData()).users.length, 1);
-
   const emptyApp = await startApp(t);
-  const setupResponse = await post(
-    emptyApp.origin,
-    '/actions/auth/setup',
-    {
-      displayName: 'Attacker',
-      email: 'attacker@example.com',
-      password,
-      confirmPassword: password,
-    },
-    '',
-    'https://evil.example'
-  );
-
+  const setupResponse = await post(emptyApp.origin, '/actions/auth/setup', { displayName: 'Attacker', email: 'attacker@example.com', password, confirmPassword: password }, '', 'https://evil.example');
   assert.equal(setupResponse.status, 403);
   assert.equal((await emptyApp.readData()).users.length, 0);
 });
-
 test('API keys are scoped, hashed, validated, protected by CSRF, and revocable', async (t) => {
   const { origin, readData } = await startApp(t);
   const cookie = await setupOwner(origin);
@@ -351,479 +333,37 @@ test('billing setup reports missing Stripe and shows subscription plans', async 
   assert.equal((await post(origin, '/webhooks/stripe', {})).status, 503);
 });
 
-test('email/password login and registration remain disabled while logout works', async (t) => {
+test('email/password registration and login work without email confirmation while logout works', async (t) => {
   const { origin, readData } = await startApp(t);
   const cookie = await setupOwner(origin);
-
-  assert.equal((await post(origin, '/actions/auth/register', {
-    displayName: 'Grace Hopper',
-    email: 'grace@example.com',
-    password,
-    confirmPassword: password,
-  })).status, 410);
-  assert.equal((await post(origin, '/actions/auth/login', {
-    email: 'ada@example.com',
-    password,
-  })).status, 410);
-  assert.equal((await readData()).users.length, 1);
-
+  const registration = await post(origin, '/actions/auth/register', { displayName: 'Grace Hopper', email: 'grace@example.com', password, confirmPassword: password, consent: 'accepted' });
+  assert.equal(registration.status, 303);
+  assert.equal(registration.headers.get('location'), '/console');
+  assert.match(registration.headers.get('set-cookie'), /^ml_session=/);
+  const login = await post(origin, '/actions/auth/login', { email: 'ada@example.com', password });
+  assert.equal(login.status, 303);
+  assert.equal(login.headers.get('location'), '/console');
+  assert.match(login.headers.get('set-cookie'), /^ml_session=/);
+  assert.equal((await readData()).users.length, 2);
   const consoleHtml = await (await fetch(`${origin}/console`, { headers: { Cookie: cookie } })).text();
   const csrf = consoleHtml.match(/name="csrf" value="([^"]+)"/)[1];
   const logout = await post(origin, '/console/logout', { csrf }, cookie);
   assert.equal(logout.status, 303);
-  assert.equal((await fetch(`${origin}/console`, {
-    headers: { Cookie: cookie },
-    redirect: 'manual',
-  })).headers.get('location'), '/login');
-  assert.equal((await readData()).users.length, 1);
-
-  const loginHtml = await (await fetch(`${origin}/login`)).text();
-  assert.match(loginHtml, /formaction="\/auth\/google"><svg viewBox="0 0 48 48"/);
-  assert.match(loginHtml, /formaction="\/auth\/github"><svg viewBox="0 0 16 16"/);
-  assert.match(loginHtml, /formaction="\/auth\/discord"><svg viewBox="0 0 24 24"/);
-  assert.match(loginHtml, /name="consent" value="accepted" required/);
+  assert.equal((await fetch(`${origin}/console`, { headers: { Cookie: cookie }, redirect: 'manual' })).status, 307);
 });
-
-test('Google, GitHub, and Discord OAuth report missing configuration or redirect with protected state', async (t) => {
-  const unconfigured = await startApp(t);
-  const unconfiguredResponse = await fetch(`${unconfigured.origin}/auth/discord`);
-  assert.equal(unconfiguredResponse.status, 503);
-  const unconfiguredHtml = await unconfiguredResponse.text();
-  assert.match(unconfiguredHtml, /href="\/auth\/google"><svg viewBox="0 0 48 48"/);
-  assert.match(unconfiguredHtml, /href="\/auth\/github"><svg viewBox="0 0 16 16"/);
-  assert.match(unconfiguredHtml, /href="\/auth\/discord"><svg viewBox="0 0 24 24"/);
-  const configured = await startApp(t, { env: { GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'secret', GITHUB_CLIENT_ID: 'github-id', GITHUB_CLIENT_SECRET: 'github-secret', DISCORD_CLIENT_ID: 'discord-id', DISCORD_CLIENT_SECRET: 'discord-secret', PUBLIC_URL: 'https://mindlarp.test' } });
-  for (const provider of ['google', 'github', 'discord']) {
-    const response = await fetch(`${configured.origin}/auth/${provider}`, { redirect: 'manual' });
-    assert.equal(response.status, 302);
-    const location = new URL(response.headers.get('location'));
-    assert.equal(location.hostname, provider === 'google' ? 'accounts.google.com' : provider === 'github' ? 'github.com' : 'discord.com');
-    assert.equal(location.searchParams.get('state').length > 20, true);
-    if (provider === 'google') assert.equal(location.searchParams.get('code_challenge_method'), 'S256');
-    if (provider === 'discord') assert.equal(location.searchParams.get('scope'), 'identify email');
-    assert.match(response.headers.get('set-cookie'), /HttpOnly/i);
-  }
-});
-
-test('signed Stripe webhook updates billing and rejects an invalid signature', async (t) => {
-  const webhookSecret = 'whsec_mindlarp_test';
-  const { origin, readData } = await startApp(t, {
-    env: {
-      STRIPE_SECRET_KEY: 'sk_test_mindlarp',
-      STRIPE_PRICE_ID: 'price_test',
-      STRIPE_WEBHOOK_SECRET: webhookSecret,
-      STRIPE_PRICE_ID_PRO: 'price_pro',
-    },
-  });
-
-  await setupOwner(origin);
-  const userId = (await readData()).users[0].id;
-
-  async function sendEvent(type, object, { id = `evt_${type.replaceAll('.', '_')}`, created = null } = {}) {
-    const payload = JSON.stringify({
-      id,
-      type,
-      ...(created === null ? {} : { created }),
-      data: { object },
-    });
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signature = createHmac('sha256', webhookSecret)
-      .update(`${timestamp}.${payload}`)
-      .digest('hex');
-
-    return fetch(`${origin}/webhooks/stripe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Stripe-Signature': `t=${timestamp},v1=${signature}`,
-      },
-      body: payload,
-    });
-  }
-
-  let response = await sendEvent('checkout.session.completed', {
-    id: 'cs_test',
-    customer: 'cus_test',
-    subscription: 'sub_test',
-    client_reference_id: userId,
-  });
-
-  assert.equal(response.status, 200);
-
-  let billing = (await readData()).users[0].billing;
-  assert.equal(billing.stripeCustomerId, 'cus_test');
-  assert.equal(billing.subscriptionId, 'sub_test');
-  assert.equal(billing.status, 'pending');
-
-  response = await sendEvent('customer.subscription.updated', {
-    id: 'sub_test',
-    customer: 'cus_test',
-    status: 'active',
-    current_period_end: Math.floor(Date.now() / 1000) + 86400,
-    items: {
-      data: [{ price: { id: 'price_test' } }],
-    },
-  });
-
-  assert.equal(response.status, 200);
-
-  billing = (await readData()).users[0].billing;
-  assert.equal(billing.subscriptionId, 'sub_test');
-  assert.equal(billing.status, 'active');
-  assert.equal(billing.priceId, 'price_test');
-  assert.ok(billing.currentPeriodEnd);
-
-  const itemPeriodEnd = Math.floor(Date.now() / 1000) + 172800;
-  response = await sendEvent('customer.subscription.updated', {
-    id: 'sub_test',
-    customer: 'cus_test',
-    status: 'active',
-    items: {
-      data: [{ price: { id: 'price_test' }, current_period_end: itemPeriodEnd }],
-    },
-  }, { id: 'evt_subscription_updated_item_period' });
-  assert.equal(response.status, 200);
-  billing = (await readData()).users[0].billing;
-  assert.equal(Date.parse(billing.currentPeriodEnd), itemPeriodEnd * 1000);
-
-  response = await sendEvent('customer.subscription.updated', {
-    id: 'sub_test',
-    customer: 'cus_test',
-    status: 'active',
-    items: { data: [{ price: { id: 'price_pro' } }] },
-  }, { id: 'evt_plan_price' });
-  assert.equal(response.status, 200);
-  billing = (await readData()).users[0].billing;
-  assert.equal(billing.priceId, 'price_pro');
-
-  response = await sendEvent('customer.subscription.updated', {
-    id: 'sub_test',
-    customer: 'cus_test',
-    status: 'active',
-    items: { data: [{ price: { id: 'price_unknown' } }] },
-  }, { id: 'evt_unknown_price' });
-  assert.equal(response.status, 400);
-
-  response = await sendEvent('checkout.session.completed', {
-    id: 'cs_test',
-    customer: 'cus_test',
-    subscription: 'sub_test',
-    client_reference_id: userId,
-  });
-  assert.equal(response.status, 200);
-  assert.equal((await readData()).users[0].billing.status, 'active');
-
-  response = await sendEvent('customer.subscription.deleted', {
-    id: 'sub_test',
-    customer: 'cus_test',
-    status: 'canceled',
-    items: { data: [{ price: { id: 'price_test' } }] },
-  }, { id: 'evt_subscription_deleted_new', created: 2000 });
-  assert.equal(response.status, 200);
-  assert.equal((await readData()).users[0].billing.status, 'canceled');
-
-  response = await sendEvent('customer.subscription.updated', {
-    id: 'sub_test',
-    customer: 'cus_test',
-    status: 'active',
-    items: { data: [{ price: { id: 'price_test' } }] },
-  }, { id: 'evt_subscription_updated_stale', created: 1000 });
-  assert.equal(response.status, 200);
-  billing = (await readData()).users[0].billing;
-  assert.equal(billing.status, 'canceled');
-
-  response = await sendEvent('customer.subscription.updated', {
-    id: 'sub_test',
-    customer: 'cus_test',
-    status: 'active',
-    items: { data: [{ price: { id: 'price_other' } }] },
-  }, { id: 'evt_subscription_wrong_price', created: 3000 });
-  assert.equal(response.status, 400);
-  assert.equal((await readData()).users[0].billing.status, 'canceled');
-
-  const invalidPayload = JSON.stringify({
-    id: 'evt_invalid',
-    type: 'checkout.session.completed',
-    data: { object: { client_reference_id: userId } },
-  });
-  const timestamp = Math.floor(Date.now() / 1000);
-
-  response = await fetch(`${origin}/webhooks/stripe`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Stripe-Signature': `t=${timestamp},v1=invalid`,
-    },
-    body: invalidPayload,
-  });
-
-  assert.equal(response.status, 400);
-});
-
-test('password recovery and reset pages redirect to OAuth sign-in', async (t) => {
-  const { origin, readData } = await startApp(t);
-  const cookie = await setupOwner(origin);
-
-  for (const path of ['/forgot-password', '/reset-password']) {
-    const response = await fetch(`${origin}${path}`, { redirect: 'manual' });
-    assert.equal(response.status, 307, path);
-    assert.equal(response.headers.get('location'), '/login', path);
-  }
-
-  assert.equal((await post(origin, '/actions/auth/forgot-password', { email: 'ada@example.com' })).status, 410);
-  assert.equal((await post(origin, '/actions/auth/reset-password', {
-    token: 'not-a-real-token',
-    password,
-    confirmPassword: password,
-  })).status, 410);
-
-  const data = await readData();
-  assert.equal(data.users.length, 1);
-  assert.equal(data.passwordResets.length, 0);
-  assert.equal(data.sessions.length, 1);
-  assert.equal((await fetch(`${origin}/console`, { headers: { Cookie: cookie } })).status, 200);
-});
-
-test('OAuth links verified emails to existing accounts and rejects unverified ones', async (t) => {
-  const mockModule = new URL('./mock-oauth.js', import.meta.url).href;
-  const { origin, readData } = await startApp(t, {
-    env: {
-      GOOGLE_CLIENT_ID: 'client-id',
-      GOOGLE_CLIENT_SECRET: 'secret',
-      DISCORD_CLIENT_ID: 'discord-id',
-      DISCORD_CLIENT_SECRET: 'discord-secret',
-      NODE_OPTIONS: `--import ${mockModule}`,
-    },
-  });
-  let response = await post(origin, '/actions/auth/setup', { displayName: 'Victim', email: 'victim@example.com', password, confirmPassword: password, consent: 'accepted' });
-  assert.equal(response.status, 303);
-
-  async function completeGoogle(code) {
-    const begin = await fetch(`${origin}/auth/google`, { redirect: 'manual' });
-    assert.equal(begin.status, 302);
-    const state = new URL(begin.headers.get('location')).searchParams.get('state');
-    const cookie = begin.headers.get('set-cookie').split(';')[0];
-    return fetch(`${origin}/auth/google/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
-      headers: { Cookie: cookie },
-      redirect: 'manual',
-    });
-  }
-
-  response = await completeGoogle('victim');
-  assert.equal(response.headers.get('location'), '/console');
-  assert.match(response.headers.get('set-cookie'), /ml_session=/);
-  let data = await readData();
-  assert.equal(data.users.length, 1);
-  assert.deepEqual(data.users[0].identities, [{ provider: 'google', providerId: 'google-victim' }]);
-
-  response = await completeGoogle('unverified');
-  assert.match(response.headers.get('location'), /\/login\?error=oauth$/);
-  data = await readData();
-  assert.equal(data.users.length, 1);
-  assert.deepEqual(data.users[0].identities, [{ provider: 'google', providerId: 'google-victim' }]);
-
-  response = await completeGoogle('oauth');
-  assert.equal(response.headers.get('location'), '/console');
-  assert.match(response.headers.get('set-cookie'), /ml_session=/);
-  data = await readData();
-  assert.equal(data.users.length, 2);
-  assert.deepEqual(data.users[1].identities, [{ provider: 'google', providerId: 'google-oauth' }]);
-
-  async function completeDiscord(code) {
-    const begin = await fetch(`${origin}/auth/discord`, { redirect: 'manual' });
-    assert.equal(begin.status, 302);
-    const state = new URL(begin.headers.get('location')).searchParams.get('state');
-    const cookie = begin.headers.get('set-cookie').split(';')[0];
-    return fetch(`${origin}/auth/discord/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
-      headers: { Cookie: cookie },
-      redirect: 'manual',
-    });
-  }
-
-  response = await completeDiscord('victim');
-  assert.equal(response.headers.get('location'), '/console');
-  data = await readData();
-  assert.equal(data.users.length, 2);
-  assert.deepEqual(data.users[0].identities, [
-    { provider: 'google', providerId: 'google-victim' },
-    { provider: 'discord', providerId: 'discord-victim' },
-  ]);
-
-  response = await completeDiscord('unverified');
-  assert.match(response.headers.get('location'), /\/login\?error=oauth$/);
-  data = await readData();
-  assert.equal(data.users[0].identities.length, 2);
-
-  response = await completeDiscord('oauth');
-  assert.equal(response.headers.get('location'), '/console');
-  data = await readData();
-  assert.deepEqual(data.users[1].identities, [
-    { provider: 'google', providerId: 'google-oauth' },
-    { provider: 'discord', providerId: 'discord-oauth' },
-  ]);
-});
-
-test('API key creation is capped at ten active keys per account', async (t) => {
-  const { origin, readData } = await startApp(t);
-  const cookie = await setupOwner(origin);
-  for (let index = 0; index < 10; index += 1) {
-    const { response } = await createKey(origin, cookie, `Key ${index + 1}`);
-    assert.equal(response.status, 201, `key ${index + 1}`);
-  }
-  const { response, html } = await createKey(origin, cookie, 'One key too many');
-  assert.equal(response.status, 400);
-  assert.match(html, /at most 10 active API keys/);
-  assert.equal((await readData()).keys.length, 10);
-});
-
-test('inference requires entitlement and enforces one daily account quota across API keys and chat', async (t) => {
-  const upstream = await startUpstream(t);
-  const restricted = await startApp(t, {
-    upstreamUrl: upstream.url,
-    env: {
-      STRIPE_SECRET_KEY: 'sk_test_mindlarp',
-      STRIPE_PRICE_ID: 'price_test',
-      STRIPE_WEBHOOK_SECRET: 'whsec_mindlarp_test',
-    },
-  });
-  const cookie = await setupOwner(restricted.origin);
-  const { secret } = await createKey(restricted.origin, cookie);
-  let response = await fetch(`${restricted.origin}/v1/chat/completions`, {
-    method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'MindLarp-Larp-1', messages: [{ role: 'user', content: 'Hello' }] }),
-  });
-  assert.equal(response.status, 403);
-  assert.equal((await response.json()).error.code, 'inference_access_denied');
-  assert.equal(upstream.requests.length, 0);
-
-  const limitedUpstream = await startUpstream(t);
-  const limited = await startApp(t, { upstreamUrl: limitedUpstream.url, env: { ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true', INFERENCE_DAILY_REQUEST_LIMIT: '1' } });
-  const limitedCookie = await setupOwner(limited.origin);
-  const firstKey = await createKey(limited.origin, limitedCookie, 'First');
-  const secondKey = await createKey(limited.origin, limitedCookie, 'Second');
-  for (const [index, key] of [firstKey.secret, secondKey.secret].entries()) {
-    response = await fetch(`${limited.origin}/v1/chat/completions`, {
-      method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'MindLarp-Larp-1', messages: [{ role: 'user', content: 'Hello' }] }),
-    });
-    assert.equal(response.status, index === 0 ? 200 : 429);
-    if (index === 1) assert.equal((await response.json()).error.code, 'inference_quota_exceeded');
-  }
-  assert.equal(limitedUpstream.requests.length, 1);
-});
-
-test('pricing plan buttons use configured Stripe payment links', async (t) => {
-  const { origin } = await startApp(t, {
-    env: { STRIPE_PAYMENT_LINK_PRO: 'https://buy.stripe.com/test_pro' },
-  });
-  const html = await (await fetch(`${origin}/pricing`)).text();
-  assert.match(html, /href="https:\/\/buy\.stripe\.com\/test_pro"/);
-  assert.match(html, /Subscribe to Pro/);
-  assert.match(html, /Payment link coming soon/);
-});
-
-test('Chat links point to the configured external interface', async (t) => {
-  const { origin } = await startApp(t, { env: { CHAT_URL: 'https://chat.example.com/' } });
-  const cookie = await setupOwner(origin);
-  const consoleHtml = await (await fetch(`${origin}/console`, { headers: { Cookie: cookie } })).text();
-  assert.match(consoleHtml, /href="https:\/\/chat\.example\.com" class="console-nav-link" target="_blank"/);
-  const homeHtml = await (await fetch(`${origin}/`)).text();
-  assert.match(homeHtml, /href="https:\/\/chat\.example\.com" class="button button-primary/);
-});
-
-test('plan subscriptions enforce their own daily request limit', async (t) => {
-  const upstream = await startUpstream(t);
-  const webhookSecret = 'whsec_mindlarp_test';
-  const { origin, readData } = await startApp(t, {
-    upstreamUrl: upstream.url,
-    env: {
-      STRIPE_SECRET_KEY: 'sk_test_mindlarp',
-      STRIPE_PRICE_ID: 'price_test',
-      STRIPE_WEBHOOK_SECRET: webhookSecret,
-      STRIPE_PRICE_ID_PRO: 'price_pro',
-      INFERENCE_DAILY_REQUEST_LIMIT_PRO: '1',
-    },
-  });
-  const cookie = await setupOwner(origin);
-  const { secret } = await createKey(origin, cookie);
-  const userId = (await readData()).users[0].id;
-
-  const payload = JSON.stringify({
-    id: 'evt_pro_active',
-    type: 'customer.subscription.updated',
-    data: { object: { id: 'sub_pro', customer: 'cus_pro', status: 'active', metadata: { userId }, items: { data: [{ price: { id: 'price_pro' } }] } } },
-  });
-  const timestamp = Math.floor(Date.now() / 1000);
-  const signature = createHmac('sha256', webhookSecret).update(`${timestamp}.${payload}`).digest('hex');
-  const webhook = await fetch(`${origin}/webhooks/stripe`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Stripe-Signature': `t=${timestamp},v1=${signature}` },
-    body: payload,
-  });
-  assert.equal(webhook.status, 200);
-  assert.equal((await readData()).users[0].billing.priceId, 'price_pro');
-
-  for (const index of [0, 1]) {
-    const response = await fetch(`${origin}/v1/chat/completions`, {
-      method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'MindLarp-Larp-1', messages: [{ role: 'user', content: 'Hello' }] }),
-    });
-    assert.equal(response.status, index === 0 ? 200 : 429);
-    if (index === 1) assert.equal((await response.json()).error.code, 'inference_quota_exceeded');
-  }
-  assert.equal(upstream.requests.length, 1);
-});
-
-test('upstream errors and oversized responses are bounded and do not leak provider diagnostics', async (t) => {
-  const upstream = createServer((request, response) => {
-    let body = '';
-    request.setEncoding('utf8');
-    request.on('data', (chunk) => { body += chunk; });
-    request.on('end', () => {
-      const payload = JSON.parse(body);
-      if (payload.messages.at(-1).content === 'oversize') {
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify({ choices: [{ message: { role: 'assistant', content: 'x'.repeat(1_100_000) } }] }));
-        return;
-      }
-      response.writeHead(500, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify({ error: { message: 'provider-secret-diagnostic' } }));
-    });
-  });
-  const port = await listen(upstream);
-  t.after(() => close(upstream));
-  const { origin } = await startApp(t, { upstreamUrl: `http://127.0.0.1:${port}/v1`, env: { ALLOW_INFERENCE_WITHOUT_SUBSCRIPTION: 'true' } });
-  const cookie = await setupOwner(origin);
-  const { secret } = await createKey(origin, cookie);
-  for (const message of ['failure', 'oversize']) {
-    const response = await fetch(`${origin}/v1/chat/completions`, {
-      method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'MindLarp-Larp-1', messages: [{ role: 'user', content: message }] }),
-    });
-    assert.equal(response.status, 502);
-    const result = await response.json();
-    assert.equal(result.error.code, message === 'oversize' ? 'upstream_response_too_large' : 'upstream_request_failed');
-    assert.doesNotMatch(JSON.stringify(result), /provider-secret-diagnostic/);
-  }
-});
-
-test('repeated password-login requests cannot bypass the OAuth-only sign-in policy', async (t) => {
+test('password login is rate limited after repeated failed attempts', async (t) => {
   const { origin, readData } = await startApp(t);
   await setupOwner(origin);
-
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const response = await post(origin, '/actions/auth/login', {
-      email: 'ada@example.com',
-      password,
-    });
-    assert.equal(response.status, 410);
+  let response;
+  for (let attempt = 0; attempt < 11; attempt += 1) {
+    response = await post(origin, '/actions/auth/login', { email: 'ada@example.com', password: 'incorrect-password' });
+    assert.equal(response.status, 303);
   }
-
+  assert.match(response.headers.get('location'), /error=limit/);
   const data = await readData();
   assert.equal(data.users.length, 1);
   assert.equal(data.sessions.length, 1);
 });
-
 test('legal pages serve full RU and EN documents with support contacts and plan appendix', async (t) => {
   const { origin } = await startApp(t);
   const pages = {

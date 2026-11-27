@@ -1,6 +1,6 @@
 import { plans } from '../content.js';
 import { consentLabel, escapeHtml, formatDate, formatNumber, icon } from '../html.js';
-import { billingFootnote, formatRub, rubAmount } from '../money.js';
+import { billingFootnote, formatRub } from '../money.js';
 import { planForPriceId, planPaymentLink } from '../server/plans.js';
 import { consoleLayout } from './layout.jsx';
 
@@ -64,7 +64,7 @@ export function billingContent({ user, csrf, configured, error = '' }) {
       : link
         ? `<a class="button ${plan.featured ? 'button-primary' : 'button-ghost'}" href="${escapeHtml(link)}">Subscribe to ${plan.name} ${icon('arrow')}</a>`
         : '<button class="button button-ghost" type="button" disabled>Payment link coming soon</button>';
-    return `<article class="plan-card ${plan.featured ? 'featured' : ''}">${isCurrent ? '<span class="plan-badge">YOUR PLAN</span>' : plan.featured ? '<span class="plan-badge">MOST POPULAR</span>' : ''}<span class="micro-label">${plan.tagline}</span><h3>${plan.name}</h3><div class="plan-price">$${plan.price}<span class="plan-price-rub"> · ≈${formatRub(rubAmount(plan.price))} ₽</span><small> / month</small></div><ul class="plan-features">${plan.features.map((feature) => `<li>${feature}</li>`).join('')}</ul>${action}</article>`;
+    return `<article class="plan-card ${plan.featured ? 'featured' : ''}">${isCurrent ? '<span class="plan-badge">YOUR PLAN</span>' : plan.featured ? '<span class="plan-badge">MOST POPULAR</span>' : ''}<span class="micro-label">${plan.tagline}</span><h3>${plan.name}</h3><div class="plan-price">$${plan.price}<span class="plan-price-rub"> = ${formatRub(plan.rubPrice)} ₽</span><small> / month</small></div><ul class="plan-features">${plan.features.map((feature) => `<li>${feature}</li>`).join('')}</ul>${action}</article>`;
   }).join('');
   const plansBlock = `<section class="billing-setup"><h3>Subscription plans</h3>${consentLabel('<input type="checkbox" id="billing-plan-consent">')}<p class="consent-note" hidden>Accept the Terms of Service and Privacy Policy to continue.</p><div class="plans-grid" data-consent-gate="billing-plan-consent">${planCards}</div><p class="legal-footnote">${escapeHtml(billingFootnote('en'))}</p><p>Payments are processed by Stripe. Your subscription activates automatically after checkout. Buttons unlock once a payment link is configured on the server.</p></section>`;
   const action = active || billing.stripeCustomerId

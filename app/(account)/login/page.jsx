@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
-import { publicLayout } from '@/src/views/layout.jsx';
-import { brandIcon, consentLabel, escapeHtml } from '@/src/html.js';
+import { authPage } from '@/src/views/public.js';
 import { getCurrentAuth } from '@/src/server/auth.js';
 import { getStore } from '@/src/server/store.js';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Sign in', robots: { index: false, follow: false } };
 
 export default async function Page({ searchParams }) {
@@ -13,35 +13,15 @@ export default async function Page({ searchParams }) {
 
   const query = await searchParams;
   const errors = {
+    credentials: 'Email or password is incorrect.',
+    invalid: 'Enter a valid email address and password.',
+    limit: 'Too many sign-in attempts. Try again later.',
+    consent: 'You must accept the Terms of Service and Privacy Policy to continue.',
     oauth: 'Social sign-in could not be completed. Try again.',
-    'account-exists': 'An account with this email already exists, created with a different sign-in method. Contact the workspace owner if you cannot sign in.',
+    'account-exists': 'An account with this email already exists. Sign in with its original method or contact support.',
     google: 'Google sign-in is not configured on this server.',
     github: 'GitHub sign-in is not configured on this server.',
     discord: 'Discord sign-in is not configured on this server.',
-    consent: 'You must accept the Terms of Service and Privacy Policy to continue.',
   };
-  const error = errors[query.error] || '';
-  const content = `<section class="auth-shell">
-    <div class="auth-aside">
-      <a href="/" class="auth-back">← Back to MindLarp</a>
-      <div><span class="section-kicker">YOUR WORKSPACE</span><h1>A place for<br>your next idea<span class="accent-dot">.</span></h1></div>
-      <p>One account. Every model.<br>Chat, API, usage, and billing.</p>
-    </div>
-    <div class="auth-form-wrap"><div class="auth-form">
-      <span class="section-kicker">WELCOME BACK</span>
-      <h2>Sign in to MindLarp</h2>
-      <p>Continue securely with a connected account.</p>
-      ${error ? `<div class="alert error" role="alert">${escapeHtml(error)}</div>` : ''}
-      <form class="oauth-consent-form" method="post" action="/auth/google">
-        ${consentLabel('<input type="checkbox" name="consent" value="accepted" required>')}
-        <div class="oauth-buttons">
-          <button class="oauth-button" type="submit" formaction="/auth/google">${brandIcon('google')}Google</button>
-          <button class="oauth-button" type="submit" formaction="/auth/github">${brandIcon('github')}GitHub</button>
-          <button class="oauth-button" type="submit" formaction="/auth/discord">${brandIcon('discord')}Discord</button>
-        </div>
-      </form>
-      <p class="auth-hint">Email and password sign-in are no longer available.</p>
-    </div></div>
-  </section>`;
-  return publicLayout({ title: 'Sign in', path: '/console', content, bodyClass: 'auth-page' });
+  return authPage({ mode: 'login', error: errors[query.error] || '' });
 }
