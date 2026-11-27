@@ -22,7 +22,7 @@ function languageSwitcher(kind, lang) {
 
 function plansAppendix(lang) {
   const ui = legalUi[lang];
-  const rows = plans.map((plan) => `<tr><td>${escapeHtml(plan.name)}</td><td>$${plan.price}</td><td>≈${formatRub(rubAmount(plan.price))} ₽</td></tr>`).join('');
+  const rows = plans.map((plan) => `<tr><td>${escapeHtml(plan.name)}</td><td>$${plan.price}</td><td>=${formatRub(plan.rubPrice)} ₽</td></tr>`).join('');
   return `<section class="legal-section legal-appendix"><h2>${escapeHtml(ui.appendixTitle)}</h2><p>${escapeHtml(ui.appendixIntro)}</p><div class="table-wrap"><table class="docs-table"><thead><tr><th>${escapeHtml(ui.planColumn)}</th><th>${escapeHtml(ui.usdColumn)}</th><th>${escapeHtml(ui.rubColumn)}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="legal-footnote">${escapeHtml(billingFootnote(lang))}</p></section>`;
 }
 
