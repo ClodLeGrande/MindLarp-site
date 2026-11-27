@@ -103,7 +103,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `STRIPE_SECRET_KEY` | For billing | Stripe secret API key. |
 | `STRIPE_PRICE_ID` | For billing | ID of a recurring Stripe Price. |
 | `STRIPE_WEBHOOK_SECRET` | For billing | Signing secret for the Stripe webhook endpoint. |
-| `SMTP_*` | Reserved | SMTP settings are used only by the separate password-recovery flow; registration and sign-in do not send confirmation emails. |
+| `SMTP_*` | Reserved | SMTP settings are reserved for future account-recovery delivery; password registration and sign-in do not send confirmation emails. |
 
 Do not expose server environment values in browser JavaScript. Console API keys authenticate MindLarp users; `MINDLARP_UPSTREAM_KEY` authenticates this server with its inference provider.
 
