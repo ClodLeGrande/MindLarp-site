@@ -1,6 +1,6 @@
 import { plans } from '../content.js';
 import { consentLabel, escapeHtml, formatDate, formatNumber, icon } from '../html.js';
-import { billingFootnote, formatRub, rubAmount } from '../money.js';
+import { billingFootnote, formatRub } from '../money.js';
 import { planForPriceId, planPaymentLink } from '../server/plans.js';
 import { consoleLayout } from './layout.jsx';
 
