@@ -41,8 +41,9 @@ Open [http://localhost:5173](http://localhost:5173). PostgreSQL listens only on 
 
 On a new installation, visit `/setup` and create the owner account. After that:
 
-- `/login` signs users in with Google, GitHub, or Discord OAuth (the only sign-in method).
-- `/register`, `/forgot-password`, and `/reset-password` redirect to `/login`; the password endpoints return `410`.
+- `/login` supports email/password and Google, GitHub, or Discord OAuth.
+- `/register` creates accounts immediately without sending an email confirmation. Passwords must contain at least 12 characters.
+- Password recovery is not available in the current release; users who lose access should contact support.
 - Chat buttons (console sidebar and public CTAs) link to your external interface when `CHAT_URL` is set; otherwise they lead to the console.
 - `/console` manages keys, usage, billing, and settings.
 - `/docs` contains the developer documentation.
@@ -240,9 +241,9 @@ STRIPE_PRICE_ID_STUDIO=price_...
 
 How it works end to end: the customer pays on Stripe’s hosted page → Stripe sends `customer.subscription.*` events to `/webhooks/stripe` → the webhook matches the Price ID against `STRIPE_PRICE_ID` and the three plan Price IDs, stores the subscription, and marks it active → inference entitlement and the plan’s daily limit apply automatically. The Stripe customer ID from the webhook also enables the **Manage billing** portal button. Per-plan limits can be overridden with `INFERENCE_DAILY_REQUEST_LIMIT_PRO/PLUS/STUDIO`; accounts without a plan subscription keep the global `INFERENCE_DAILY_REQUEST_LIMIT`.
 
-## SMTP password recovery (disabled)
+## Password authentication
 
-Email/password registration and sign-in do not send confirmation emails. Password recovery remains a separate flow and may use the configured mail transport.
+Email/password registration and sign-in do not send confirmation emails. Password recovery is not available in the current release; users who lose access should contact support.
 
 ## Verification
 
