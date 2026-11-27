@@ -226,42 +226,24 @@ test('owner setup validates input and establishes a persistent session', async (
   assert.equal((await fetch(`${origin}/setup`, { redirect: 'manual' })).headers.get('location'), '/login');
 });
 
-test('email/password login, registration, and recovery endpoints are disabled without changing account data', async (t) => {
+test('password auth rejects cross-origin requests and keeps recovery endpoints disabled', async (t) => {
   const { origin, readData } = await startApp(t);
   const cookie = await setupOwner(origin);
-
-  const disabledRequests = [
+  for (const [path, body] of [
     ['/actions/auth/login', { email: 'ada@example.com', password }],
-    ['/actions/auth/register', { displayName: 'Grace Hopper', email: 'grace@example.com', password, confirmPassword: password }],
-    ['/actions/auth/forgot-password', { email: 'ada@example.com' }],
-    ['/actions/auth/reset-password', { token: 'not-a-real-token', password, confirmPassword: password }],
-  ];
-
-  for (const [path, body] of disabledRequests) {
+    ['/actions/auth/register', { displayName: 'Grace Hopper', email: 'grace@example.com', password, confirmPassword: password, consent: 'accepted' }],
+  ]) {
     const response = await post(origin, path, body, cookie, 'https://evil.example');
-    assert.equal(response.status, 410, path);
+    assert.equal(response.status, 403, path);
   }
-
+  assert.equal((await post(origin, '/actions/auth/forgot-password', { email: 'ada@example.com' })).status, 410);
+  assert.equal((await post(origin, '/actions/auth/reset-password', { token: 'not-a-real-token', password, confirmPassword: password })).status, 410);
   assert.equal((await readData()).users.length, 1);
-
   const emptyApp = await startApp(t);
-  const setupResponse = await post(
-    emptyApp.origin,
-    '/actions/auth/setup',
-    {
-      displayName: 'Attacker',
-      email: 'attacker@example.com',
-      password,
-      confirmPassword: password,
-    },
-    '',
-    'https://evil.example'
-  );
-
+  const setupResponse = await post(emptyApp.origin, '/actions/auth/setup', { displayName: 'Attacker', email: 'attacker@example.com', password, confirmPassword: password }, '', 'https://evil.example');
   assert.equal(setupResponse.status, 403);
   assert.equal((await emptyApp.readData()).users.length, 0);
 });
-
 test('API keys are scoped, hashed, validated, protected by CSRF, and revocable', async (t) => {
   const { origin, readData } = await startApp(t);
   const cookie = await setupOwner(origin);
