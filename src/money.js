@@ -18,7 +18,6 @@ export function formatUsdWithRub(usd, rub) {
 }
 
 export function billingFootnote(lang = 'en') {
-  const rate = usdToRubRate();
   return lang === 'ru'
     ? 'Стоимость в рублях указана рядом с ценой в USD; итоговая сумма и доступные способы оплаты отображаются перед подтверждением платежа.'
     : 'The fixed ruble price is shown alongside USD; the final amount and available payment methods are displayed before payment confirmation.';
