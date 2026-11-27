@@ -76,7 +76,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `PORT` | No | HTTP port; development default is `5173`. |
 | `PUBLIC_URL` | Production | Public origin without a trailing slash. Used for OAuth callbacks, reset links, canonical URLs, and Stripe redirects. |
 | `CHAT_URL` | No | Absolute HTTP(S) URL of your external chat interface. When set, the console sidebar shows a Chat link to it and public “Start chat” buttons point there; otherwise those buttons lead to the console. |
-| `USD_TO_RUB` | No | Indicative USD→RUB rate for the ruble equivalents shown next to plan prices; defaults to `90`. Billing is always charged in USD. The rate is read in one place (`src/money.js`). |
+| Ruble plan prices | No | Fixed RUB prices for Pro, Plus, and Studio are defined alongside the plans in `src/content.js`. |
 | `DATABASE_URL` | For PostgreSQL | Application PostgreSQL connection. When set, it takes precedence over JSON storage. Use a pooler for hosted Supabase. |
 | `DIRECT_URL` | Recommended | Direct PostgreSQL connection used by migration and import commands. Falls back to `DATABASE_URL`. |
 | `DATABASE_POOL_SIZE` | No | Maximum PostgreSQL connections per Node.js process; defaults to `10`. Multiply it by the replica count when sizing PostgreSQL. |
@@ -103,7 +103,7 @@ Next.js loads configuration from `.env`. The migration commands also read `.env`
 | `STRIPE_SECRET_KEY` | For billing | Stripe secret API key. |
 | `STRIPE_PRICE_ID` | For billing | ID of a recurring Stripe Price. |
 | `STRIPE_WEBHOOK_SECRET` | For billing | Signing secret for the Stripe webhook endpoint. |
-| `SMTP_*` | Reserved | SMTP settings are validated but currently unused: password recovery is disabled under OAuth-only sign-in. |
+| `SMTP_*` | Reserved | SMTP settings are used only by the separate password-recovery flow; registration and sign-in do not send confirmation emails. |
 
 Do not expose server environment values in browser JavaScript. Console API keys authenticate MindLarp users; `MINDLARP_UPSTREAM_KEY` authenticates this server with its inference provider.
 
@@ -253,7 +253,7 @@ npm run check:production
 npm audit --omit=dev
 ```
 
-Set a valid production configuration before `check:production`. The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, asset alias isolation, runtime sitemap URLs, account setup, the OAuth-only sign-in policy, sessions and expired-session cleanup, CSRF, API key caps, entitlement and quota checks, mock inference and streaming, bounded upstream failures, external chat links, OAuth redirects and verified-email account linking, and signed/idempotent Stripe webhooks (including item-level billing periods).
+Set a valid production configuration before `check:production`. The HTTP integration tests start production Next.js on isolated ports with temporary JSON files and explicitly clear database connection variables. They cover public pages, asset alias isolation, runtime sitemap URLs, account setup, password registration and sign-in, sessions and expired-session cleanup, CSRF, API key caps, entitlement and quota checks, mock inference and streaming, bounded upstream failures, external chat links, OAuth redirects and verified-email account linking, and signed/idempotent Stripe webhooks (including item-level billing periods).
 
 To run the real PostgreSQL integration test against local Docker:
 
