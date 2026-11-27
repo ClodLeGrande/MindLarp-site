@@ -6,11 +6,11 @@ The website, documentation, and developer console for the MindLarp model family 
 
 - Responsive public website with model pages, pricing, changelog, status, and legal pages.
 - Bilingual legal documents: `/privacy` and `/terms` (English) plus `/ru/privacy` and `/ru/terms` (Russian), with a language switcher, support contact, and a plan-price appendix in the User Agreement. Texts live in `src/legal/`.
-- Plan prices show an indicative ruble equivalent (`$19 · ≈1 710 ₽`) next to USD; billing is always charged in USD. Registration and checkout require accepting the legal documents.
+- Plan prices show USD alongside fixed ruble prices (`$19 = 1 600 ₽`, `$79 = 6 600 ₽`, `$199 = 16 400 ₽`). The available payment method and final charge are shown before checkout. Registration and checkout require accepting the legal documents.
 - English documentation and an OpenAI-compatible API reference.
 - SEO metadata, Open Graph, JSON-LD, `robots.txt`, sitemap, and web manifest.
 - OpenAI-compatible inference API; chat buttons link to your own external interface via `CHAT_URL` (the built-in chat page was removed).
-- OAuth-only sign-in with Google, GitHub, and Discord (PKCE for Google); email/password login, registration, and password recovery are disabled.
+- Email/password sign-in and registration without email confirmation, alongside Google, GitHub, and Discord OAuth (PKCE for Google).
 - Console with scoped API keys, usage reporting, profile settings, and billing.
 - Stripe Checkout, Customer Portal, and signed subscription webhooks.
 - PostgreSQL persistence with migrations, transactions, constraints, indexes, and row-level security.
@@ -242,7 +242,7 @@ How it works end to end: the customer pays on Stripe’s hosted page → Stripe 
 
 ## SMTP password recovery (disabled)
 
-Sign-in is OAuth-only, so password recovery is disabled: `/forgot-password` and `/reset-password` redirect to `/login`, and the recovery endpoints return `410`. The SMTP configuration and production validation remain in place for a possible future re-enablement, but no email is sent today.
+Email/password registration and sign-in do not send confirmation emails. Password recovery remains a separate flow and may use the configured mail transport.
 
 ## Verification
 
@@ -289,7 +289,7 @@ test/                    HTTP and real PostgreSQL integration tests
 - Put Node.js behind a reverse proxy with request limits and timeouts. The proxy must terminate public access to direct Node/PostgreSQL ports and overwrite client-supplied `X-Real-IP`/`X-Forwarded-For` before `TRUST_PROXY=true` is enabled.
 - Add a shared Redis/PostgreSQL-backed rate limiter before horizontal or high-risk public launch. The built-in limiter is process-local and is only a single-instance safeguard.
 - Treat PostgreSQL scaling as a launch gate: the current store refreshes and serializes broad application state. Run a realistic load test and keep one application replica until the data path is refactored into targeted SQL queries.
-- Create the owner through `/setup` before opening traffic. Sign-in is OAuth-only; configure Google, GitHub, and Discord credentials and decide whether open OAuth signup is acceptable or invitation controls are needed for a closed launch.
+- Create the owner through `/setup` before opening traffic. Password registration is open to users after the initial owner is created; configure Google, GitHub, and Discord credentials if social sign-in is also desired.
 - Configure model aliases, provider-side budgets/quotas, `INFERENCE_DAILY_REQUEST_LIMIT`, and either Stripe subscriptions or an explicit non-billing inference override. Do not present quota accounting as metered invoicing.
 - Define usage retention and deletion policies and review the placeholder legal page.
 - Review all model, price, status, trusted-company, and social-link content before launch.
