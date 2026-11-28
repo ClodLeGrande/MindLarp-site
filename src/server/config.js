@@ -5,8 +5,7 @@ export function publicUrl(fallback = 'http://localhost:3000') {
 }
 
 export function chatUrl() {
-  const value = process.env.CHAT_URL || 'https://chat.mindlarp.com';
-  return /^https?:\/\//.test(value) ? value.replace(/\/$/, '') : '';
+  return 'https://chat.mindlarp.com';
 }
 
 export function smtpConfig() {
