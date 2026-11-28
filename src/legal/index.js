@@ -3,7 +3,7 @@ import { privacyRu } from './privacy.ru.js';
 import { termsEn } from './terms.en.js';
 import { termsRu } from './terms.ru.js';
 
-export const supportEmail = 'maksimansakov423@gmail.com';
+export const supportEmail = 'mindlarp.inbox@gmail.com';
 
 export function privacyDocument(lang = 'en') {
   return lang === 'ru' ? privacyRu : privacyEn;
